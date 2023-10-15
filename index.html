@@ -60,7 +60,7 @@
   <script id="fluid-configs">
     var Fluid = window.Fluid || {};
     Fluid.ctx = Object.assign({}, Fluid.ctx)
-    var CONFIG = {"hostname":"captain32.github.io","root":"/","version":"1.9.5-a","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":["home"]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"0DHAyLeOfwqNRanYXNuL4Mhr-gzGzoHsz","app_key":"lq0Ly742okJc5yeBJcZaiHSF","server_url":"https://0dhayleo.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+    var CONFIG = {"hostname":"captain32.github.io","root":"/","version":"1.9.5-a","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":["home"]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":6},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"0DHAyLeOfwqNRanYXNuL4Mhr-gzGzoHsz","app_key":"lq0Ly742okJc5yeBJcZaiHSF","server_url":"https://0dhayleo.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
 
     if (CONFIG.web_analytics.follow_dnt) {
       var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
@@ -255,15 +255,15 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
-        <a href="/2023/10/13/hello-world/" target="_self">
-          Hello World
+        <a href="/2023/10/15/%E6%B5%85%E6%9E%90MySQL-GTID/" target="_self">
+          浅析MySQL GTID
         </a>
       </h2>
 
       
-      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/13/hello-world/" target="_self">
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E6%B5%85%E6%9E%90MySQL-GTID/" target="_self">
         <div>
-          Welcome to Hexo! This is your very first post. Check documentation for more info. If you get any problems when using Hexo, you can find the answer in troubleshooting or you can ask me on GitHub. Quick
+          一、总览在GTID(Global Transaction Identifier)诞生之前，MySQL主备同步是使用“文件名+位移”来确定binlog的复制位点的，在实际使用中很不便利。因此GTID应运而生，每个被写入binlog的事务都被分配了一个全局唯一的GTID，主库和备库通过计算已执行GTID的集合差集就可以确定复制位点了，大大简化确认位点的流程。GTID是与主库上提交的每个事务关联的唯一标
         </div>
       </a>
 
@@ -271,12 +271,308 @@
         
           <div class="post-meta mr-3">
             <i class="iconfont icon-date"></i>
-            <time datetime="2023-10-13 23:04" pubdate>
-              2023-10-13
+            <time datetime="2023-10-15 17:57" pubdate>
+              2023-10-15
             </time>
           </div>
         
         
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MySQL/" class="category-chain-item">MySQL</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/MySQL/Server/" class="category-chain-item">Server</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/MySQL/Server/Replication-Layer/" class="category-chain-item">Replication Layer</a>
+  
+  
+
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/MySQL/">#MySQL</a>
+            
+              <a href="/tags/%E8%AF%BB%E6%BA%90%E7%A0%81/">#读源码</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/" target="_self">
+          分布式文件系统 Frangipani
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/" target="_self">
+        <div>
+          论文标题为《Frangipani: A Scalable Distributed File System》，发表于1997年，这篇论文主要介绍了一个用于多人协作的分布式文件系统，介绍了一个通过读写锁解决缓存一致性的方案，虽然年代久远并且设计比较粗犷，但是还是有一些可借鉴之处。 概览Frangipani用于多个用户在同一个文件系统中协同工作，底层存储系统Petal是作者之前做的块存储系统，可以看作一
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2023-10-15 17:52" pubdate>
+              2023-10-15
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
+            
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/">#分布式文件系统</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/" target="_self">
+          状态复制 VM-FT
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/" target="_self">
+        <div>
+          论文标题为《The Design of a Practical System for Fault-Tolerant Virtual Machines》，发表于2010年，这篇论文主要介绍了VMware的虚拟机状态同步设计VM-FT，通过传递操作日志，达到机器级别的同步，并且具有外部一致性。 状态同步VM-FT要达到的同步是虚拟机级别的同步，虚拟机不需要感知内部的应用程序的状态，所要做的就是所有虚拟
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2023-10-15 17:42" pubdate>
+              2023-10-15
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
+            
+              <a href="/tags/%E5%A4%8D%E5%88%B6/">#复制</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CRAQ/" target="_self">
+          链式复制 CRAQ
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CRAQ/" target="_self">
+        <div>
+          论文标题为《Object Storage on CRAQ: High-throughput chain replication for read-mostly workloads》，发表于2009年，这篇论文主要介绍了链式复制CR的升级版，可以让非尾节点响应读请求。 架构设计 存储服务对外暴露两个接口write、read，分别对应了写和读：  write写操作需要整条链的参与，客户端向首节点发写请
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2023-10-15 17:36" pubdate>
+              2023-10-15
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
+            
+              <a href="/tags/%E5%A4%8D%E5%88%B6/">#复制</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CR/" target="_self">
+          链式复制 CR
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CR/" target="_self">
+        <div>
+          论文标题为《Chain Replication for Supporting High Throughput and Availability》，发表于2004年，这篇论文主要介绍了常被用于主备复制的经典的链式复制CR。 架构设计 存储服务对外暴露两个接口query、update，分别对应了读和写：  query读操作仅发生在尾节点，客户端向尾节点发读请求，尾节点从自身存储找到对应内容后回复 up
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2023-10-15 17:20" pubdate>
+              2023-10-15
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
+            
+              <a href="/tags/%E5%A4%8D%E5%88%B6/">#复制</a>
+            
+          </div>
         
       </div>
     </article>

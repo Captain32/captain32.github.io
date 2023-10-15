@@ -1,0 +1,834 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=light>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="张熙哲">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="论文标题为《The Design of a Practical System for Fault-Tolerant Virtual Machines》，发表于2010年，这篇论文主要介绍了VMware的虚拟机状态同步设计VM-FT，通过传递操作日志，达到机器级别的同步，并且具有外部一致性。 状态同步VM-FT要达到的同步是虚拟机级别的同步，虚拟机不需要感知内部的应用程序的状态，所要做的就是所有虚拟">
+<meta property="og:type" content="article">
+<meta property="og:title" content="状态复制 VM-FT">
+<meta property="og:url" content="http://captain32.github.io/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/index.html">
+<meta property="og:site_name" content="Captain">
+<meta property="og:description" content="论文标题为《The Design of a Practical System for Fault-Tolerant Virtual Machines》，发表于2010年，这篇论文主要介绍了VMware的虚拟机状态同步设计VM-FT，通过传递操作日志，达到机器级别的同步，并且具有外部一致性。 状态同步VM-FT要达到的同步是虚拟机级别的同步，虚拟机不需要感知内部的应用程序的状态，所要做的就是所有虚拟">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE1.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE2.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE3.png">
+<meta property="article:published_time" content="2023-10-15T09:42:02.000Z">
+<meta property="article:modified_time" content="2023-10-15T10:20:06.095Z">
+<meta property="article:author" content="张熙哲">
+<meta property="article:tag" content="读论文">
+<meta property="article:tag" content="复制">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://captain32.github.io/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE1.png">
+  
+  
+  
+  <title>状态复制 VM-FT - Captain</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"captain32.github.io","root":"/","version":"1.9.5-a","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":["home"]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":6},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"0DHAyLeOfwqNRanYXNuL4Mhr-gzGzoHsz","app_key":"lq0Ly742okJc5yeBJcZaiHSF","server_url":"https://0dhayleo.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+    <!-- Google tag (gtag.js) -->
+    <script async>
+      if (!Fluid.ctx.dnt) {
+        Fluid.utils.createScript("https://www.googletagmanager.com/gtag/js?id=", function() {
+          window.dataLayer = window.dataLayer || [];
+          function gtag() {
+            dataLayer.push(arguments);
+          }
+          gtag('js', new Date());
+          gtag('config', '');
+        });
+      }
+    </script>
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 60vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Captain&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle">状态复制 VM-FT</span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-10-15 17:42" pubdate>
+          2023年10月15日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.8k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          24 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="leancloud-page-views"></span> 次
+        </span>
+        
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar category-bar" style="margin-right: -1rem">
+    
+
+
+
+
+
+<div class="category-list">
+  
+  
+    
+    
+    
+    <div class="category row nomargin-x">
+      <a class="category-item 
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="MIT6.824 分布式系统"
+        id="heading-aa244c0b2998c7a31646f84d6cc293ba" role="tab" data-toggle="collapse" href="#collapse-aa244c0b2998c7a31646f84d6cc293ba"
+        aria-expanded="true"
+      >
+        MIT6.824 分布式系统
+        <span class="list-group-count">(4)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse show" id="collapse-aa244c0b2998c7a31646f84d6cc293ba"
+           role="tabpanel" aria-labelledby="heading-aa244c0b2998c7a31646f84d6cc293ba">
+        
+        
+          
+  <div class="category-post-list">
+    
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/" title="分布式文件系统 Frangipani"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式文件系统 Frangipani</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/" title="状态复制 VM-FT"
+           class="list-group-item list-group-item-action
+           active">
+          <span class="category-post">状态复制 VM-FT</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CR/" title="链式复制 CR"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">链式复制 CR</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CRAQ/" title="链式复制 CRAQ"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">链式复制 CRAQ</span>
+        </a>
+      
+    
+  </div>
+
+        
+      </div>
+    </div>
+  
+</div>
+
+
+  </aside>
+
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">状态复制 VM-FT</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <p>论文标题为《The Design of a Practical System for Fault-Tolerant Virtual Machines》，发表于2010年，这篇论文主要介绍了VMware的虚拟机状态同步设计VM-FT，通过传递操作日志，达到机器级别的同步，并且具有外部一致性。</p>
+<h2 id="状态同步"><a href="#状态同步" class="headerlink" title="状态同步"></a>状态同步</h2><p><img src="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE1.png" srcset="/img/loading.gif" lazyload alt="图1" title="图1"><br>VM-FT要达到的同步是虚拟机级别的同步，虚拟机不需要感知内部的应用程序的状态，所要做的就是所有虚拟机下辖内存、寄存器等机器级别的同步。为了方便备份虚拟机的快速上任，以及避免硬盘的同步(速度慢)，在VM-FT的设计中，如上图所示主备虚拟机使用的是远端共享硬盘。<br>为了完成状态同步，一般有两种选择：</p>
+<ul>
+<li>直接同步状态，比如对于数据库来说直接同步数据表</li>
+<li><strong>同步操作日志</strong>，主备机从同样的状态开始(VMware实现了VMotion，可以不到1s完成虚拟机的状态复制，使得两个虚拟机可以有相同初始状态)，执行同样的操作，得到同样的确定结果，走到同样的状态</li>
+</ul>
+<p>第一种方式简单直接，但是会有很大的网络IO压力，因为虚拟机级别的状态是一个很大的镜像，不适合实时通过网络同步。VM-FT选择的是第二种方式，在主备虚拟机之间建立一个Logging channel，主虚拟机将所有操作以日志的形式同步给备虚拟机。在主备虚拟机上都有日志缓冲区，分别用于发送、接受，这也相当于是一种速率控制机制，当主虚拟机的发送缓冲区满了时，会调低自己在物理机上的CPU占比，减缓处理Client请求、发送日志的速率。<br>为了保证主备虚拟机状态的完全一致，需要所有操作按照相同顺序在主备虚拟机上执行，主虚拟机会按照顺序记录下执行的所有操作，对于那些可能产生不确定性结果的指令(例如获得当前时间)，还需要在日志项中记录产生的结果等信息，确保在备虚拟机上回放时可以产生相同的结果。还需要考虑中断的处理，VM-FT会将中断按照它发生的时间点，写成日志项插入到对应的日志位置中，使得备虚拟机可以在同样的位置模拟中断的发生。<br>下面给出一些会产生不确定性结果的例子及解决方案：</p>
+<ul>
+<li>获得当前时间：主虚拟机执行相应指令触发中断并随后获得当前时间，将指令和结果发送给备虚拟机，备虚拟机重放日志项的时候同样执行指令触发中断，但是采用日志项中记录的结果。</li>
+<li>中断处理：主虚拟机执行指令时遇到了中断，会从CPU读指令号，随后在日志项中标记在某个指令遇到了什么中断，备虚拟机重放日志时，VM-FT在虚拟机执行对应指令时模拟出同样的中断。</li>
+<li>硬盘操作：首先备虚拟机仅模拟硬盘读写，采用的是主虚拟机的结果，并不会真正读写共享硬盘。在VMware的虚拟机中使用了DMA，可以直接完成硬盘到内存的加载，以及内存到硬盘的写，但由于没有CPU介入会带来一些影响确定性的问题。比如：<ul>
+<li>多个DMA任务同时用了同一块内存，VM-FT通过检测冲突，并给它们排序解决。</li>
+<li>恰巧某个应用程序读了正在被DMA写的内存，读到的内容存在不确定性(写了10%？30%？100%？)，为了避免这种小概率事件的发生，VM-FT设计了专用的缓冲区，缓冲区所占内存是在物理机上而不是虚拟机中，DMA是将硬盘内容加载到缓冲区，当DMA完成后，再CPU介入将内容拷进虚拟机内存的对应位置，避免了中间状态。写硬盘也变成CPU介入将内存内容写到缓冲区，再由DMA完成缓冲区到硬盘的写。外部物理机的缓冲区使得整个过程不会因为DMA产生不确定性，进而保证了主备状态经过日志重放后完全一致。</li>
+</ul>
+</li>
+<li>网络IO：网络异步IO会带来不确定性，所以VM-FT杜绝了网络的异步IO(虽然影响性能，但保证了确定性)，网卡向主虚拟机传收到的数据包时，需要发起中断引起CPU介入，那么日志项就如同中断处理一样，将中断、传输的数据都记录在日志项中，备虚拟机重放日志时就在同样的指令时模拟中断，根据日志项记录的数据模拟出从网卡读入数据包。</li>
+</ul>
+<h2 id="外部一致性"><a href="#外部一致性" class="headerlink" title="外部一致性"></a>外部一致性</h2><p>VM-FT希望达到的目标是，外部Client会在主虚拟机正常工作时与之交互，当主虚拟机发生故障后，备虚拟机可以立马上任，与外部Client交互，使得外部Client感知不到机器的切换。<br>首先备虚拟机通过心跳机制以及Logging channel(时间中断就如同心跳一样，每隔一段时间就中断一下产生日志)可以感知到主虚拟机的宕机，这时备虚拟机会将自己日志缓冲区内的日志项重放完成后就转入主虚拟机的角色，向交换机广播自己的MAC地址，开始直接与外部Client交互，而不是向之前一样屏蔽掉自己对外的输出。这个过程可能会产生<strong>脑裂</strong>，即主虚拟机并没有宕机，而是两者网络断连，为了避免这种情况，VM-FT需要虚拟机在升为主节点时在共享磁盘上完成一个test and set操作，如果成功就正式成为主节点，如果失败了就说明另一个机器正在作为主节点，这时这个虚拟机会直接自杀。当备虚拟机升级为主虚拟机后，集群便可以选择另一个机器作为备虚拟机达到容错的目的，可以使用之前说的VMotion创建备虚拟机，这时主虚拟机切换成Log模式，就开始将自己的操作以日志形式同步给新的备虚拟机了。<br>解决了主备切换的问题后，还需要考虑的是对外部Client表现的需要像是没有切换一样，因为主备虚拟机之间一定存在至少一个指令(日志项)的延迟，假如主虚拟机在宕机前处理了某个请求(比如给x&#x3D;10加1得到11)返回结果给Client，但对应的日志还没有传给备虚拟机，当备虚拟机升级为主虚拟机时，就会停在处理这个请求之前的状态(即x&#x3D;10而不是11)，这就违反了外部一致性。为了避免这种情况，VM-FT令主备虚拟机遵守**输出规则(Output Rule)**，当对外进行输出(发送请求、回复)时，主虚拟机需要确保备虚拟机ACK了对应的日志项后，才可以对外真正输出，如下图所示。<br><img src="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE2.png" srcset="/img/loading.gif" lazyload alt="图2" title="图2"><br>输出规则保证了备虚拟机一定知晓对外产生了影响(包括写共享硬盘)的日志项，至于因为延迟而忽略的没来得及发送的操作，由于尚未对外产生影响，可以忽略掉，不会损害对外的一致性。为了避免主虚拟机还没来得及发送消息就宕机，备虚拟机接管后会发送消息(上图Backup的虚线箭头)，虽然有可能产生重复消息(主虚拟机已经发过了)，但是总比没发好，重发问题可以通过Client的TCP排除重复消息以及其他幂等方法解决。</p>
+<h2 id="非共享硬盘场景"><a href="#非共享硬盘场景" class="headerlink" title="非共享硬盘场景"></a>非共享硬盘场景</h2><p>假如因为硬件条件或其他原因无法使用共享硬盘，就可以采用下图的设计，硬盘也被认为是状态的一部分。在开始同步时，除了原有VMotion创建备虚拟机外，还需要再同步一下硬盘内容，之后就依据日志完成同步。在这种场景下，备虚拟机要写自己的硬盘，但出于性能考虑不需要真正读硬盘，直接依赖日志中读的结果就可以。由于硬盘已经是自己私有的，不用像之前一样认为写硬盘是一种对外输出，需要主备虚拟机遵守输出规则，主虚拟机需要等到ACK才真正写，在这种场景中，主虚拟机直接写硬盘就可以，不需要等待。同时，由于缺少了共享存储，应对脑裂问题就需要借助第三方服务来保证只有一个主虚拟机对外交互。<br><img src="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE3.png" srcset="/img/loading.gif" lazyload alt="图3" title="图3"></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/" class="print-no-link">#读论文</a>
+      
+        <a href="/tags/%E5%A4%8D%E5%88%B6/" class="print-no-link">#复制</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>状态复制 VM-FT</div>
+      <div>http://captain32.github.io/2023/10/15/状态复制-VM-FT/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>张熙哲</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年10月15日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/" title="分布式文件系统 Frangipani">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">分布式文件系统 Frangipani</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CRAQ/" title="链式复制 CRAQ">
+                        <span class="hidden-mobile">链式复制 CRAQ</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#comments', function() {
+      var light = 'github-light';
+      var dark = 'github-dark';
+      var schema = document.documentElement.getAttribute('data-user-color-scheme');
+      if (schema === 'dark') {
+        schema = dark;
+      } else {
+        schema = light;
+      }
+      window.UtterancesThemeLight = light;
+      window.UtterancesThemeDark = dark;
+      var s = document.createElement('script');
+      s.setAttribute('src', 'https://utteranc.es/client.js');
+      s.setAttribute('repo', 'Captain32/Utterances-comment');
+      s.setAttribute('issue-term', 'pathname');
+      
+      s.setAttribute('label', 'utterances');
+      
+      s.setAttribute('theme', schema);
+      s.setAttribute('crossorigin', 'anonymous');
+      document.getElementById('comments').appendChild(s);
+    })
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="leancloud-site-pv-container" style="display: none">
+        总访问量 
+        <span id="leancloud-site-pv"></span>
+         次
+      </span>
+    
+    
+      <span id="leancloud-site-uv-container" style="display: none">
+        总访客数 
+        <span id="leancloud-site-uv"></span>
+         人
+      </span>
+    
+    
+
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script defer src="/js/leancloud.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
