@@ -1,0 +1,993 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=light>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="张熙哲">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="论文标题为《No compromises: distributed transactions with consistency, availability, and performance》，发表于2015年，这篇论文主要介绍了Microsoft的一个研究模型FaRM，利用两种特殊硬件，以及两阶段提交2PC和乐观并发控制OCC的结合来完成高性能的分布式事务，整个设计适用于单个数据中心，并发事务较少">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式事务 FaRM">
+<meta property="og:url" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/index.html">
+<meta property="og:site_name" content="Captain">
+<meta property="og:description" content="论文标题为《No compromises: distributed transactions with consistency, availability, and performance》，发表于2015年，这篇论文主要介绍了Microsoft的一个研究模型FaRM，利用两种特殊硬件，以及两阶段提交2PC和乐观并发控制OCC的结合来完成高性能的分布式事务，整个设计适用于单个数据中心，并发事务较少">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/%E5%9B%BE1.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/%E5%9B%BE2.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/%E5%9B%BE3.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/%E5%9B%BE4.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/%E5%9B%BE5.png">
+<meta property="article:published_time" content="2023-10-15T13:59:52.000Z">
+<meta property="article:modified_time" content="2023-10-15T14:07:54.742Z">
+<meta property="article:author" content="张熙哲">
+<meta property="article:tag" content="读论文">
+<meta property="article:tag" content="分布式事务">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/%E5%9B%BE1.png">
+  
+  
+  
+  <title>分布式事务 FaRM - Captain</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"captain32.github.io","root":"/","version":"1.9.5-a","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":["home"]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":6},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"0DHAyLeOfwqNRanYXNuL4Mhr-gzGzoHsz","app_key":"lq0Ly742okJc5yeBJcZaiHSF","server_url":"https://0dhayleo.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+    <!-- Google tag (gtag.js) -->
+    <script async>
+      if (!Fluid.ctx.dnt) {
+        Fluid.utils.createScript("https://www.googletagmanager.com/gtag/js?id=", function() {
+          window.dataLayer = window.dataLayer || [];
+          function gtag() {
+            dataLayer.push(arguments);
+          }
+          gtag('js', new Date());
+          gtag('config', '');
+        });
+      }
+    </script>
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 60vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Captain&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle">分布式事务 FaRM</span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-10-15 21:59" pubdate>
+          2023年10月15日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          5.8k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          49 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="leancloud-page-views"></span> 次
+        </span>
+        
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar category-bar" style="margin-right: -1rem">
+    
+
+
+
+
+
+<div class="category-list">
+  
+  
+    
+    
+    
+    <div class="category row nomargin-x">
+      <a class="category-item 
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="MIT6.824 分布式系统"
+        id="heading-aa244c0b2998c7a31646f84d6cc293ba" role="tab" data-toggle="collapse" href="#collapse-aa244c0b2998c7a31646f84d6cc293ba"
+        aria-expanded="true"
+      >
+        MIT6.824 分布式系统
+        <span class="list-group-count">(16)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse show" id="collapse-aa244c0b2998c7a31646f84d6cc293ba"
+           role="tabpanel" aria-labelledby="heading-aa244c0b2998c7a31646f84d6cc293ba">
+        
+        
+          
+  <div class="category-post-list">
+    
+    
+      
+      
+        <a href="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/" title="共识算法 Raft"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">共识算法 Raft</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/" title="分布式事务 FaRM"
+           class="list-group-item list-group-item-action
+           active">
+          <span class="category-post">分布式事务 FaRM</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-Spanner/" title="分布式事务 Spanner"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式事务 Spanner</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/" title="分布式文件系统 Frangipani"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式文件系统 Frangipani</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/" title="分布式文件系统 GFS"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式文件系统 GFS</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-MapReduce/" title="分布式计算 MapReduce"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式计算 MapReduce</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-Spark/" title="分布式计算 Spark"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式计算 Spark</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/" title="分支一致性 CT"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分支一致性 CT</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-SUNDR/" title="分支一致性 SUNDR"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分支一致性 SUNDR</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%8D%8F%E8%B0%83%E6%9C%8D%E5%8A%A1-Zookeeper/" title="协调服务 Zookeeper"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">协调服务 Zookeeper</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/" title="因果一致性 COPS"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">因果一致性 COPS</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%AD%98%E7%AE%97%E5%88%86%E7%A6%BB-Aurora/" title="存算分离 Aurora"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">存算分离 Aurora</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/" title="状态复制 VM-FT"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">状态复制 VM-FT</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CR/" title="链式复制 CR"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">链式复制 CR</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CRAQ/" title="链式复制 CRAQ"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">链式复制 CRAQ</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84-Memcached/" title="高并发缓存架构 Memcached"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">高并发缓存架构 Memcached</span>
+        </a>
+      
+    
+  </div>
+
+        
+      </div>
+    </div>
+  
+</div>
+
+
+  </aside>
+
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">分布式事务 FaRM</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <p>论文标题为《No compromises: distributed transactions with consistency, availability, and performance》，发表于2015年，这篇论文主要介绍了Microsoft的一个研究模型FaRM，利用两种特殊硬件，以及两阶段提交2PC和乐观并发控制OCC的结合来完成高性能的分布式事务，整个设计适用于单个数据中心，并发事务较少的情况。</p>
+<h2 id="特殊硬件"><a href="#特殊硬件" class="headerlink" title="特殊硬件"></a>特殊硬件</h2><h3 id="非易失性内存-Non-volatile-DRAM"><a href="#非易失性内存-Non-volatile-DRAM" class="headerlink" title="非易失性内存(Non-volatile DRAM)"></a>非易失性内存(Non-volatile DRAM)</h3><p>FaRM之所以快，很大程度上与它使用了非易失性内存NVRAM有关，传统的存储系统在完成读、写操作时经常需要和硬盘打交道，但是硬盘相比于内存慢了很多。所以FaRM选择直接不用硬盘，而是用内存提供读写服务，但是内存的缺陷就在于断电重启之后存储内容清空，所以FaRM设计了内存的供能系统，与机器分开独立供电。当集群或者机器断电时，NVRAM的电源可以再支撑一段时间，在这段时间里会把NVRAM中的数据转储到硬盘之中，方便之后恢复，以此达到非易失性内存的目标。<strong>NVRAM解决了硬盘写性能这个瓶颈</strong>。</p>
+<h3 id="RDMA-Remote-Direct-Memory-Access-网卡"><a href="#RDMA-Remote-Direct-Memory-Access-网卡" class="headerlink" title="RDMA(Remote Direct Memory Access)网卡"></a>RDMA(Remote Direct Memory Access)网卡</h3><p>通常内部系统之间的网络交互都使用RPC调用，RPC调用需要CPU参与，经过TCP等一系列协议栈从网卡NIC发出去，整个过程由一系列的系统调用、消息复制、中断，并且在接收方收到时也需要同样的逆操作，导致整体性能差。为了解决网络IO的性能问题，FaRM使用了kernel bypass技术和RDMA网卡，kernel bypass允许应用程序直接和网卡进行交互，没有中间这些协议栈以及系统调用，RDMA网卡则允许直接访问远端内存，无需远端CPU参与，这是单边的通信协议，不需要双边参与，既加快了访问速度也减少了双方的CPU消耗。<strong>RDMA解决了网络IO性能这个瓶颈</strong>。</p>
+<h2 id="整体架构"><a href="#整体架构" class="headerlink" title="整体架构"></a>整体架构</h2><p><img src="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/%E5%9B%BE1.png" srcset="/img/loading.gif" lazyload alt="图1" title="图1"><br>一个FaRM集群由一台CM(configuration manager，上图Machine D，很像HDFS中Master的角色)和若干台提供读写服务的机器(上图Machine A、B、C，很像Slave的角色)。CM负责了整个集群Region的管理，比如一个Region在哪些机器上存着，它的主节点是哪台机器，CM承担起了整个集群的元数据管理职责。可以从图中右下部分看到FaRM还利用Zookeeper管理了整个集群的配置信息，包括一个单调递增的配置id、集群中的机器、集群中的CM，Zookeeper是用于整个集群基本信息的管理，在配置稳定的情况下本身不参与集群活动，很像是Zookeeper在HDFS集群中的角色。</p>
+<p>FaRM对外暴露的是一个很大的全局地址空间，外部应用可以将FaRM看作一个有极大地址空间的内存。为了管理这么大的地址空间，FaRM把地址空间每2GB拆出来一个Region，每一个Region会在f+1台机器上进行冗余，所以正常情况下，每个Region会有1台主节点和f台备份从节点，可以达到容错f台机器故障的效果。Region的复制完全是主从复制，在主节点健康的情况下，将仅仅有主节点提供该Region的读写服务。在FaRM的设计中，一台机器的NVRAM上可以存250个Region，有些是自己做主节点，有些不是，可以达到整体的负载均衡。</p>
+<p>当需要新建一个Region的时候，会是一个2PC(两阶段提交)的过程，CM会充当协调者(Coordinator)的身份，首先根据不同机架等容错相关的角度以及负载均衡的考量选出f+1台机器存新的Region，并且决定主节点。之后便开启了2PC的过程，首先向f+1台机器发送prepare消息，让他们做好存新Region的准备，当收到所有f+1台机器肯定的回复后再发送commit消息并且建立起新的Region id到机器的映射。</p>
+<p>CM以外的每台机器除了要负责Region的本地读写、远端读以外，还需要专门预留一片空间存放其他机器发来的事务记录日志、消息，这一部分内存的写直接由远端机器RDMA写，RDMA网卡本身会有自己的ACK消息返回，不需要本机器的CPU参与，本机器只需要有个线程定期扫这些日志、队列进行处理即可，对于远端发送方来说是一个异步的过程。</p>
+<h2 id="分布式事务"><a href="#分布式事务" class="headerlink" title="分布式事务"></a>分布式事务</h2><p>FaRM的分布式事务是2PC+乐观并发控制(OCC，Optimistic Concurrency Control)的思想，OCC的核心在于事务使用的对象不加锁，整个过程不写对象，直到最后验证要写的、要读的对象全部和开始时一样，才会写对象并且提交。与悲观并发控制的不同就在于过程中尽可能不加锁，FaRM整体上是OCC的思想，虽然还是对事务要写的对象上了锁，因为毕竟分布式事务的写操作外加上之后的2PC并不是原子的，所以需要加锁，但不给只读对象上锁，在FaRM的分布式事务设计中有多次远端读，这可以充分的利用RDMA网卡，所以可以达到很好的性能。</p>
+<p>正如刚才描述的OCC，本质思想其实是Compare and Set，与原来一样那就代表没冲突，就可以写。所以FaRM为每个存储对象都赋予了64bit的单调递增版本号，用于比较对象前后是否被修改过，同样为了满足FaRM锁待修改对象的需要，版本号的最高位用于标示该对象是否正在一个事务中等待被修改。<br><img src="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/%E5%9B%BE2.png" srcset="/img/loading.gif" lazyload alt="图2 事务流程图" title="图2 事务流程图"><br><img src="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/%E5%9B%BE3.png" srcset="/img/loading.gif" lazyload alt="图3 事务日志记录类别表" title="图3 事务日志记录类别表"><br>整个分布式事务流程是一个2PC+OCC的过程，应用层的分布式事务发起者会充当协调者的身份。FaRM采用的是预写策略，在Execute Phase，协调者会把事务需要的所有对象远端读过来，然后在本机完成整个事务需要的修改，这里就已经把事务结果预处理并缓存好了。接下来便是事务提交Commit Phase的过程：</p>
+<ol>
+<li>首先协调者会向所有待修改对象所在Region的主节点发送LOCK记录，记录中包含了事务id，事务所修改的所有Region的id，待修改对象的地址、版本、值。各个Region的主节点处理到这个记录时，会尝试原子的(compare and set)将自己负责的对应版本的对象锁起来，假如没有全部成功，那就解锁返回失败，否则返回成功。这一步其实是OCC验证了待修改对象的版本还和之前一样，至于上锁是为了防止后续这段处理时间中突然被改了，这保证了多个事务之间的顺序。同时这一步也做了2PC第一阶段的准备工作。</li>
+<li>当第1步收到所有待修改Region主节点的成功返回后，就会开始OCC验证只读对象的版本是否和之前一样。所以这一步直接远端读只读对象对比即可，但凡版本不一样或者被加了锁(同样会导致版本号不一样)，都会使得整个事物失败。这一步结束后其实就将事务涉及的所有对象的OCC检查都完成了。</li>
+<li>这一步协调者会向所有待修改Region的备份节点发送COMMIT-BACKUP记录，这个记录的内容和第一步发给主节点的LOCK记录其实是一样的，与第一步不同的是，这一步只管把记录发到(收到了对面RDMA网卡的ACK)，不用管是否记录已经被处理。这一步完成后，所有的备份节点就已经持久化了事务的提交记录，之后会被处理更新到具体对象上。这一步像是对于备份节点2PC准备、提交的二合一，因为备份节点不需要考虑锁的问题，也没有啥准备工作，直接提交就可以了。</li>
+<li>这一步就是2PC的第二阶段——提交，协调者会发送COMMIT-PRIMARY记录给所有待修改Region的主节点，只要有其中一个主节点ACK了协调者的RDMA写，该记录不需要被真正处理，协调者就可以认为此次事务已经完成提交，最终一定会被更新到存储内容中，因此就可以向上层客户端返回成功了。之所以可以如此自信，是因为COMMIT-PRIMARY记录只要被送达到一个待修改Region的主节点那里持久化在事务日志里，那么该Region所有主备节点都持久化了COMMIT-BACKUP或者COMMIT-PRIMARY记录，已经可以容忍f台机器故障，所以保证了事务提交这个决定的持久化。这一步就完成了2PC的第二阶段，当然记录的处理是异步的，真正反映到修改的对象上需要等异步线程完成处理，以及增加版本号、释放相关的锁。</li>
+<li>这一步就是收尾工作了，跟整个事务的正确性其实关系不大，当所有COMMIT记录都确保送到之后，会懒发送TRUNCATE记录，表明哪些事务id的记录项可以被删掉，用于维护服务器的事务日志占的大小。</li>
+</ol>
+<p>补充一个例子，可以充分说明VALIDATION的作用。</p>
+<blockquote>
+<p>x、y初始为0<br>事务T1:<br>&nbsp;&nbsp;if x &#x3D;&#x3D; 0:<br>&nbsp;&nbsp;&nbsp;&nbsp;y &#x3D; 1<br>事务T2:<br>&nbsp;&nbsp;if y &#x3D;&#x3D; 0:<br>&nbsp;&nbsp;&nbsp;&nbsp;x &#x3D; 1<br>两个事务的并发结果(0,1)、(1,0)或者双双终止得到(0,0)都是可以接受的，但是(1,1)是错误的。没有对只读对象进行VALIDATION就可能导致(1,1)的错误结果！</p>
+</blockquote>
+<h2 id="故障恢复"><a href="#故障恢复" class="headerlink" title="故障恢复"></a>故障恢复</h2><h3 id="故障检测"><a href="#故障检测" class="headerlink" title="故障检测"></a>故障检测</h3><p>FaRM利用租约(其实也是心跳)检测机器故障，CM赋予其他所有机器租约，同时其他机器也都赋予CM租约，每隔一小段时间就需要更新租约，来保证感知机器的存活状态。</p>
+<h3 id="配置更新"><a href="#配置更新" class="headerlink" title="配置更新"></a>配置更新</h3><p>当有机器宕机、掉线的时候，就需要找Zookeeper修改集群配置信息了，期间还会涉及Region的重新分配。正如上文描述，FaRM的故障检测本质上是心跳检测，当CM发现某个机器失去心跳的时候会发起配置更新的流程；当普通机器发现CM失去心跳的时候，它首先会联系CM备份机去进行配置更新，假如过了一长段时间并没有配置更新，那么该机器就会自己启动配置更新的流程，并任命自己为CM。下面根据配置更新流程图介绍整个流程。<br><img src="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/%E5%9B%BE4.png" srcset="/img/loading.gif" lazyload alt="图4" title="图4"></p>
+<ol>
+<li>首先，CM根据心跳检查察觉哪些机器宕机了，这一步只是怀疑。</li>
+<li>为了调查有多少机器宕机，CM向所有非怀疑机器发读请求，得到存活的机器列表。</li>
+<li>CM根据第2步的结果将新的配置信息提交给Zookeeper，完成配置信息的更新。</li>
+<li>CM把之前宕机的机器负责的Region重新安排够f+1台冗余，假如宕机的是主节点，就提拔一个备份节点当主节点。这一步完成后CM就不会再从宕机节点读数据了。</li>
+<li>CM将新配置信息NEW-CONFIG发给每台机器。</li>
+<li>非CM机器处理到新配置信息时，会停止从宕机节点读写数据，并且开辟空间承接自己要新负责的Region，屏蔽外部请求，并且回复CM，假如CM发生了变更，则会跟新的CM进行心跳检查。</li>
+<li>CM收到所有机器的回复后，等到前一个配置所有租约都过期，会向所有机器下发提交新配置的命令NEW-CONFIG-COMMIT，所有机器接到后就可以开始处理外部请求了。至此完成配置更新。</li>
+</ol>
+<h3 id="事务恢复"><a href="#事务恢复" class="headerlink" title="事务恢复"></a>事务恢复</h3><p><img src="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/%E5%9B%BE5.png" srcset="/img/loading.gif" lazyload alt="图5" title="图5"></p>
+<ol>
+<li><p>事务恢复和之前的配置更新有穿插的部分。当某个Region的主节点挂掉了，新的被提拔为主节点的备份节点还不能立马开始提供读写服务，需要将所有状态(包括事务的锁)都恢复的和挂掉的主节点一样，所以需要先屏蔽所有请求。</p>
+</li>
+<li><p>当机器接到了新配置提交的命令后，会把机器上所有的已有未处理的日志处理完，这一步是所有机器互不干扰在自己机器上并行完成的。</p>
+</li>
+<li><p>什么样的事务需要恢复？首先事务的Commit Phase需要横跨配置更新，并且以下三个条件在新配置中至少满足其一(其实就是判读事务的所有参与机器有没有宕机)，其他的事务其实不受影响，无需恢复：</p>
+<ol>
+<li>待修改Region的副本机器集发生变更</li>
+<li>只读Region的主节点发生变更</li>
+<li>事务协调者被移除</li>
+</ol>
+<p> 这里的判断是在第2步处理日志时进行的，所需要判断以上3个条件的信息是由CM发过来的(CM可以发现一个Region的映射关系是否发生变化)。每个Region的备节点都会将自己发现的需要恢复的事务id以及相关信息组成NEED-RECOVERY消息发给主节点。主节点会把所有备节点和自己发现的待恢复的事务整理出来，由于主节点可能已经截断删除了某些待恢复事务的日志项，所以需要找对应的备节点取回对应的日志项。</p>
+</li>
+<li><p>主节点有了所有待恢复事务的id，也有了所有需要的日志项，就可以根据日志把所有需要上锁的对象上锁(新选的主节点才需要)。如此新主节点便已经恢复了之前宕机主节点的状态，所以该Region可以开始对外提供读写服务，停止屏蔽请求。</p>
+</li>
+<li><p>主节点根据之前备节点NEED-RECORVERY消息里面与最终整理的待恢复事务差集可以知道备节点丢失了哪些事务的日志项(其实就是COMMIT-BACKUP记录)。主节点会给每个备节点发送相应的记录，与自己当前拥有的LOCK记录相同。</p>
+</li>
+<li><p>恢复事务的时候假如原本的协调者被移除了新配置，FaRM使用一致性哈希决定新的协调者，否则沿用原来的。跟该事务相关的所有待修改Region的主节点会根据自己Region的事务日志情况进行投票：</p>
+<ol>
+<li>本Region存在副本看到了COMMIT-PRIMARY，就投commit-primary</li>
+<li>本Region存在副本看到了COMMIT-BACKUP，并且没有看到ABORT，就投commit-backup</li>
+<li>本Region存在副本看到了LOCK，并且没有看到ABORT，就投lock</li>
+<li>没有该事务任何日志，投truncated或unknown</li>
+<li>其他情况投abort</li>
+</ol>
+</li>
+<li><p>协调者收集所有投票之后，根据投票情况会做出决定，并且最后也会发出截断日志的消息：</p>
+<ol>
+<li>收到了commit-primary，决定提交该事务(保证了与之前的提交决定一致)</li>
+<li>收到了commit-backup，并且其他所有投票不存在abort，决定提交该事务(之前没有决定提交还是终止，但是已经通过VALIDATE到了COMMIT-BACKUP这一步，那么就尽可能地提交该事务)</li>
+<li>否则决定终止该事务(保证了与之前的终止决定一致)</li>
+</ol>
+</li>
+</ol>
+<p>抛开截断日志不看，FaRM事务恢复的正确性就在于一个分布式事务的所有参与Region里，单凡有一个主节点活下来保留了COMMIT-PRIMARY，那么整个事务就可以不违背之前的决定成功提交。但凡看到一个ABORT，同样也可以不违背之前的决定成功终止。对于出现了COMMIT-BACKUP但是没看到COMMIT-PRIMARY和ABORT的情况，那就代表事务已经通过了OCC检查，但是有可能恰巧所有的COMMIT-PRIMARY记录丢失了，所以应该尽可能地让各个新主节点恢复锁现场，完成对该事务的提交，不违背对外部的承诺。</p>
+<p>对于不符合3.abc条件的事务，那其实说明该事务的所有参与机器都没有故障，不需要额外干扰，让他们自己推进就好，所以不用进行事务恢复。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/" class="print-no-link">#读论文</a>
+      
+        <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" class="print-no-link">#分布式事务</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>分布式事务 FaRM</div>
+      <div>http://captain32.github.io/2023/10/15/分布式事务-FaRM/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>张熙哲</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年10月15日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/10/15/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84-Memcached/" title="高并发缓存架构 Memcached">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">高并发缓存架构 Memcached</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-Spanner/" title="分布式事务 Spanner">
+                        <span class="hidden-mobile">分布式事务 Spanner</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#comments', function() {
+      var light = 'github-light';
+      var dark = 'github-dark';
+      var schema = document.documentElement.getAttribute('data-user-color-scheme');
+      if (schema === 'dark') {
+        schema = dark;
+      } else {
+        schema = light;
+      }
+      window.UtterancesThemeLight = light;
+      window.UtterancesThemeDark = dark;
+      var s = document.createElement('script');
+      s.setAttribute('src', 'https://utteranc.es/client.js');
+      s.setAttribute('repo', 'Captain32/Utterances-comment');
+      s.setAttribute('issue-term', 'pathname');
+      
+      s.setAttribute('label', 'utterances');
+      
+      s.setAttribute('theme', schema);
+      s.setAttribute('crossorigin', 'anonymous');
+      document.getElementById('comments').appendChild(s);
+    })
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="leancloud-site-pv-container" style="display: none">
+        总访问量 
+        <span id="leancloud-site-pv"></span>
+         次
+      </span>
+    
+    
+      <span id="leancloud-site-uv-container" style="display: none">
+        总访客数 
+        <span id="leancloud-site-uv"></span>
+         人
+      </span>
+    
+    
+
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script defer src="/js/leancloud.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

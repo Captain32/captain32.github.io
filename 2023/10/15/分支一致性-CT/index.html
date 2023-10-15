@@ -1,0 +1,1009 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=light>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="张熙哲">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="本文依据Transparent Logs for Skeptical Clients整理，主要介绍了Certificate Transparency如何以日志的形式公开管理证书，避免传统PKI体系下CA(Certificate Authority)被攻击导致证书不可信的问题 预备知识 数字证书 PKI体系 Merkle 树结构  PKI体系问题PKI体系下由CA给各个域名对应的服务器签发证书，客户">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分支一致性 CT">
+<meta property="og:url" content="http://captain32.github.io/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/index.html">
+<meta property="og:site_name" content="Captain">
+<meta property="og:description" content="本文依据Transparent Logs for Skeptical Clients整理，主要介绍了Certificate Transparency如何以日志的形式公开管理证书，避免传统PKI体系下CA(Certificate Authority)被攻击导致证书不可信的问题 预备知识 数字证书 PKI体系 Merkle 树结构  PKI体系问题PKI体系下由CA给各个域名对应的服务器签发证书，客户">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE1.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE2.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%85%AC%E5%BC%8F1.jpg">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE3.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE4.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE5.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE6.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE7.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%85%AC%E5%BC%8F2.jpg">
+<meta property="article:published_time" content="2023-10-15T14:27:29.000Z">
+<meta property="article:modified_time" content="2023-10-15T14:38:17.691Z">
+<meta property="article:author" content="张熙哲">
+<meta property="article:tag" content="分支一致性">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE1.png">
+  
+  
+  
+  <title>分支一致性 CT - Captain</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"captain32.github.io","root":"/","version":"1.9.5-a","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":["home"]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":6},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"0DHAyLeOfwqNRanYXNuL4Mhr-gzGzoHsz","app_key":"lq0Ly742okJc5yeBJcZaiHSF","server_url":"https://0dhayleo.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+    <!-- Google tag (gtag.js) -->
+    <script async>
+      if (!Fluid.ctx.dnt) {
+        Fluid.utils.createScript("https://www.googletagmanager.com/gtag/js?id=", function() {
+          window.dataLayer = window.dataLayer || [];
+          function gtag() {
+            dataLayer.push(arguments);
+          }
+          gtag('js', new Date());
+          gtag('config', '');
+        });
+      }
+    </script>
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 60vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Captain&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle">分支一致性 CT</span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-10-15 22:27" pubdate>
+          2023年10月15日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          5.2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          44 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="leancloud-page-views"></span> 次
+        </span>
+        
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar category-bar" style="margin-right: -1rem">
+    
+
+
+
+
+
+<div class="category-list">
+  
+  
+    
+    
+    
+    <div class="category row nomargin-x">
+      <a class="category-item 
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="MIT6.824 分布式系统"
+        id="heading-aa244c0b2998c7a31646f84d6cc293ba" role="tab" data-toggle="collapse" href="#collapse-aa244c0b2998c7a31646f84d6cc293ba"
+        aria-expanded="true"
+      >
+        MIT6.824 分布式系统
+        <span class="list-group-count">(16)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse show" id="collapse-aa244c0b2998c7a31646f84d6cc293ba"
+           role="tabpanel" aria-labelledby="heading-aa244c0b2998c7a31646f84d6cc293ba">
+        
+        
+          
+  <div class="category-post-list">
+    
+    
+      
+      
+        <a href="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/" title="共识算法 Raft"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">共识算法 Raft</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/" title="分布式事务 FaRM"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式事务 FaRM</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-Spanner/" title="分布式事务 Spanner"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式事务 Spanner</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/" title="分布式文件系统 Frangipani"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式文件系统 Frangipani</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/" title="分布式文件系统 GFS"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式文件系统 GFS</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-MapReduce/" title="分布式计算 MapReduce"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式计算 MapReduce</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-Spark/" title="分布式计算 Spark"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式计算 Spark</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/" title="分支一致性 CT"
+           class="list-group-item list-group-item-action
+           active">
+          <span class="category-post">分支一致性 CT</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-SUNDR/" title="分支一致性 SUNDR"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分支一致性 SUNDR</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%8D%8F%E8%B0%83%E6%9C%8D%E5%8A%A1-Zookeeper/" title="协调服务 Zookeeper"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">协调服务 Zookeeper</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/" title="因果一致性 COPS"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">因果一致性 COPS</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%AD%98%E7%AE%97%E5%88%86%E7%A6%BB-Aurora/" title="存算分离 Aurora"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">存算分离 Aurora</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/" title="状态复制 VM-FT"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">状态复制 VM-FT</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CR/" title="链式复制 CR"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">链式复制 CR</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CRAQ/" title="链式复制 CRAQ"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">链式复制 CRAQ</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84-Memcached/" title="高并发缓存架构 Memcached"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">高并发缓存架构 Memcached</span>
+        </a>
+      
+    
+  </div>
+
+        
+      </div>
+    </div>
+  
+</div>
+
+
+  </aside>
+
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">分支一致性 CT</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <p>本文依据<a target="_blank" rel="noopener" href="https://research.swtch.com/tlog">Transparent Logs for Skeptical Clients</a>整理，主要介绍了<a target="_blank" rel="noopener" href="https://certificate.transparency.dev/">Certificate Transparency</a>如何以日志的形式公开管理证书，避免传统PKI体系下CA(Certificate Authority)被攻击导致证书不可信的问题</p>
+<h2 id="预备知识"><a href="#预备知识" class="headerlink" title="预备知识"></a>预备知识</h2><ul>
+<li><a target="_blank" rel="noopener" href="https://yeasy.gitbook.io/blockchain_guide/05_crypto/cert">数字证书</a></li>
+<li><a target="_blank" rel="noopener" href="https://yeasy.gitbook.io/blockchain_guide/05_crypto/pki">PKI体系</a></li>
+<li><a target="_blank" rel="noopener" href="https://yeasy.gitbook.io/blockchain_guide/05_crypto/merkle_trie">Merkle 树结构</a></li>
+</ul>
+<h2 id="PKI体系问题"><a href="#PKI体系问题" class="headerlink" title="PKI体系问题"></a>PKI体系问题</h2><p>PKI体系下由CA给各个域名对应的服务器签发证书，客户端(比如浏览器)通过信任CA，根据CA的公钥验证服务器返回证书签名的有效性，来确认服务器证书的有效性，进而相信服务器。CA在PKI体系下至关重要，浏览器一般信任了超过100个CA，会有以下安全性问题：</p>
+<ul>
+<li>不同CA的安全防范能力参差不齐，木桶原理，最弱的CA遭受黑客攻击会给用户带来安全问题</li>
+<li>每个CA由工作人员维护，不能保证所有工作人员可信</li>
+<li>CA无法避免受到政府的管控，掺入政府的意图</li>
+</ul>
+<p>CA的不安全性会使得“假证书”的情况频发，比如一个黑客的服务器绑定了Google的域名，并利用不安全的CA获得了证书，那么客户端就会相信这个黑客的服务器就是Google的服务器，导致后续安全问题。并且在现有PKI体系下，这样的“假证书”问题很难第一时间发现。</p>
+<h2 id="Certificate-Transparency"><a href="#Certificate-Transparency" class="headerlink" title="Certificate Transparency"></a>Certificate Transparency</h2><p><a target="_blank" rel="noopener" href="https://certificate.transparency.dev/howctworks/">How CT works</a>给出了CT的证书签发的替代方案，如下图所示。在CT中，依然有CA的存在，CA需要将证书登记到日志服务器，日志服务器上的日志只允许Append不断增长，其中每个日志项是一个签发的证书。这个日志是公开可见的，客户端可以检查服务器发送的证书是否在日志中来验证证书的合法性，每个公司(例如Google)可以设立专门的Monitor来定期扫描日志来检查是否假冒自己公司的证书。整个流程将PKI体系下CA存的内容变得透明了，外部请求可以直接访问日志，使得审计更加方便，能更快发现“假证书”。当发现“假证书”后，由于日志是只允许添加的，CA可以将“假证书”放入一个回收列表，每次确认证书合法性时先检查一下是否在回收列表中。<br><img src="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE1.png" srcset="/img/loading.gif" lazyload alt="图1" title="图1"><br>提供一个全局可见、透明的日志是一个美好的愿想，但是如何保证被攻陷的CA不会篡改日志？同时全局的日志将会是很大的一个文件，如何快速检查某个日志项在日志中？接下来将介绍Merkle树，并且介绍CT如何利用Merkle树构建这么一个全局可见、不可篡改的日志，提供了<strong>分支一致性</strong>(即一个客户端看到了一个分支的话，将始终在这个分支上前进，无法再合并到其他分支)。</p>
+<p>在CA、日志服务器被攻陷的情况下，CA、日志服务器可能给Client发送假证书，并且营造出假日志来欺骗Client，同时给Monitor呈现另一份日志让Monitor发现了不了假证书，实现瞒天过海。CT保证在这种情况下，<strong>Client可以通过和Monitor交流发现自己被欺骗(能检测到分支的不同)<strong>，并且能保留CA的犯罪证据，进而使CA失信。在惩罚之下，CA、日志服务器就会尽可能的遵守规则，</strong>呈现出全局可见并且只有一个分支的日志</strong>。</p>
+<h2 id="Merkle树"><a href="#Merkle树" class="headerlink" title="Merkle树"></a>Merkle树</h2><p>Merkle树的每个叶子节点是实际存储内容(CT中就是日志项，即证书)的哈希值，每个内部节点是其两个子节点内容拼接后的哈希值，如此形成一棵树。为了方便，先暂时考虑叶子节点数量为2的幂的情况，这样树将会是满二叉树，如下图所示具有16个叶子结点的Merkle树：<br><img src="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE2.png" srcset="/img/loading.gif" lazyload alt="图2" title="图2"><br>在上图例子中，有16个日志项，所以有16个(0-15)叶子结点，树高5层(0-4)，每一层节点数量依次减半。用h(L,K)来表示层级L的第K个节点存的哈希值，有：</p>
+<ul>
+<li>叶子节点是第K个记录的哈希值$h(0,K)&#x3D;H(record\ K)$</li>
+<li>内部节点是两个子节点拼接后的哈希值$h(L,K)&#x3D;H(h(L-1,2K),h(L-1,2K+1))$</li>
+</ul>
+<p><strong>Merkle树结构可以用来快速判断某个日志项是否在日志中</strong>，比如客户端需要判断B是否是日志中的第9个日志项，可以如下拆解：</p>
+<p><img src="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%85%AC%E5%BC%8F1.jpg" srcset="/img/loading.gif" lazyload></p>
+<p>其实就是检查$h(4,0)$和$H(h(3, 0), H(H(H(h(0, 8), H(B)), h(1, 5)), h(2, 3)))$是否相等，那么当客户端需要验证某个证书B是否是日志的第9个日志项时，服务端向客户端发送根节点$h(4,0)$，邻居节点$h(0,8)$、$h(1,5)$、$h(2,3)$、$h(3,0)$即可，客户端拿到后自行计算校验，校验通过就说明证书B真的在日志中，就可以选择相信证书。至于如何确认<strong>服务端要传哪些节点哈希值给客户端用于证明第K个日志项在日志中，就是将根节点和第K个日志项到根节点的路径中所有节点的邻居节点传给客户端</strong>，客户端就可以重新计算出根节点哈希值，就可以完成校验，比如下图。<br><img src="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE3.png" srcset="/img/loading.gif" lazyload alt="图3" title="图3"></p>
+<h2 id="日志结构设计"><a href="#日志结构设计" class="headerlink" title="日志结构设计"></a>日志结构设计</h2><p>上面介绍中，将日志项个数理想化为2的幂，这样的Merkle树是满二叉树，但是大部分情况下日志项个数都不是2的幂，所以为了方便起见，在日志设计上就需要考虑将日志拆分成若干个满二叉树组合成的实际二叉树。比如具有13个日志项的日志，就可以拆分成13&#x3D;8+4+1三个满二叉树，如下图所示。<br><img src="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE4.png" srcset="/img/loading.gif" lazyload alt="图4" title="图4"><br>图中标记为x的节点是通过两个子满二叉树组合出的节点，比如$h(3,x)&#x3D;H(h(2,2),h(0,12))$，这种节点被CT称为<strong>临时节点</strong>，用数字标记的在某个满二叉树中的节点被称为<strong>永久节点</strong>。永久节点会被日志服务器存储在硬盘上，但是临时节点并不会被存起来也不会被服务器返回，因为临时节点后续会因为继续添加日志项而被改变，当需要返回临时节点对应的哈希值时返回其永久子节点即可。例如下图所示，长度为7的日志增长为长度为8时，第7个日志项的添加，使Merkle树多了$h(0,7)$节点，它又与$h(0,6)$组合出了$h(1,3)$，进一步与$h(1,2)$组合出$h(2,1)$，再随后组合出了新的根节点$h(3,0)$。在这个过程中，两个y标识的临时节点消失，添加了4个永久节点，形成了一课新的Merkle树。可以发现永久节点自创建后永远不会变但是临时节点只用于表示当前日志状态，日志的增长会使临时节点改变。<br><img src="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE5.png" srcset="/img/loading.gif" lazyload alt="图5" title="图5"><br>所以CT设计中真正进行日志存储时，有几个只允许Append增长的文件：</p>
+<ul>
+<li>日志文件，这个文件中按顺序存了一个个日志项(证书)，存了真正的数据内容</li>
+<li>索引文件，这个文件是对第一个文件的索引，记录了每个日志项在文件中的offset，方便读出某个日志项或者遍历日志项</li>
+<li>Merkle树文件，这是一组文件，每个文件代表了一个level中<strong>永久节点</strong>的哈希值，比如图4中日志对应的level-2文件存的就是$h(2,0)$、$h(2,1)$、$h(2,2)$，level-1文件存的就只有$h(3,0)$</li>
+</ul>
+<p>当向日志中添加新日志项时，首先是向日志文件、索引文件中添加相应的日志项与索引。随后计算出该日志项的哈希值添加到Merkle树的level-0文件，当该哈希值可以和某个邻居节点配对时，计算出两者联合后的哈希值添加到level-1文件，以此类推更新上层文件，直到无法配对形成新节点。</p>
+<h2 id="日志使用"><a href="#日志使用" class="headerlink" title="日志使用"></a>日志使用</h2><h3 id="日志项是否存在"><a href="#日志项是否存在" class="headerlink" title="日志项是否存在"></a>日志项是否存在</h3><p>客户端需要校验证书的有效性，需要检查日志项是否存在于日志中，客户端不能完全信任CA、日志服务器说某个日志项在不在日志中，而应该让其提供密码学安全的证明，证明日志项在日志中。与前文描述的满二叉树验证方式类似，服务器同样需要返回日志项对应叶子节点到根结点之间的路径的邻居节点，供客户端计算出根节点哈希值，对比服务器返回的根结点哈希值就可以知道日志项是否存在于日志中。比如下图中，验证证书B是否是第9个日志项，服务器需要返回根节点$h(4,x)$，邻居节点$h(0,8)$、$h(1,5)$、$h(0,12)$、$h(3,0)$，其中$h(0,12)$是$h(2,2)$的邻居节点，虽然两者不在一个level。<br><img src="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE6.png" srcset="/img/loading.gif" lazyload alt="图6" title="图6"><br>这个证明是密码学安全的，因为假如恶意日志服务器想证明不在日志中的假证书B，就需要伪造出其他邻居节点的哈希值来使得计算结果是根节点哈希值，但是哈希函数是单向的，这个伪造几乎不可能，所以只要服务器可以给出证明，那么客户端就可以相信证书B确实在日志中。<br>因为路径长度是$log(N)$的，所以可以用$log(N)$的传输信息、时间复杂度完成校验。</p>
+<h3 id="前缀日志判断"><a href="#前缀日志判断" class="headerlink" title="前缀日志判断"></a>前缀日志判断</h3><p>因为CT中日志是单调增长的，所以<strong>任何日志项被添加到日志项后，不应该被修改、删除，所以任何旧版本日志都理应是新版本日志的前缀</strong>。前缀判断之所以重要，在于CA、日志服务器可能被黑客攻陷，假如它们在一次请求中给客户端维护了一个假日志，里面包含了假证书，骗完客户端后，在下一次请求中又给客户端发了真日志，客户端不加检查的话犯罪证据就被掩盖了。CT为了避免这种情况，需要<strong>客户端持久化最近一次CA发给它的日志根节点哈希值STH(Signed Tree Head)，这个哈希值是CA数字签名的，未来无法抵赖</strong>。在客户端需要更新的日志时，首先要验证自己已知的日志是不是新日志的前缀，如果不是就说明CA、日志服务器篡改了自己已知的日志，表明自己曾经信任的证书是不安全的！</p>
+<p><strong>前缀判断还可以用于客户端和Monitor之间的交流</strong>，因为恶意CA、日志服务器可能给客户端、Monitor维护两份日志，一方面提供恶意服务给客户端，一方面应对Monitor的检查。所以客户端和Monitor之间的交流是重要的，但是同一时间两者见到的日志可能是不同版本，无法直接比较根节点哈希值，所以<strong>通常检查其中一个日志是否是另一个日志的前缀来判断两者看到是不是同一份日志</strong>。</p>
+<p>一个版本的日志，可以由其Merkle树的根节点哈希值STH唯一标识，所以已知两个版本日志的STH，目标是证明旧版本日志是新版本日志的前缀，有下图示例。已知前7个(0-6)日志项组成日志的STH为$T_7$，前13个(0-12)日志项组成日志的STH为$T_{13}$，两个Merkle树中的临时节点分别由y、x代指。服务端需要返回哪些节点哈希值才可以证明$T_7$是$T_{13}$的前缀？<br><img src="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%9B%BE7.png" srcset="/img/loading.gif" lazyload alt="图7" title="图7"><br><strong>首先将旧版本的</strong>$T_7$<strong>进行拆解，因为不能用临时节点，所以需要拆解成尽可能少的永久节点(即所有子满二叉树的根节点)<strong>，有$T_7 &#x3D; H(h(2, 0), H(h(1, 2), h(0, 6)))$，即上图中蓝圈中的节点。</strong>随后再拆解新版本的</strong>$T_{13}$<strong>，在拆解时需要完全使用旧版本的拆解结果(即蓝圈节点)，并且再配上尽可能少的额外的永久节点</strong>，即上图中红圈中的节点，因此有：</p>
+<p><img src="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/%E5%85%AC%E5%BC%8F2.jpg" srcset="/img/loading.gif" lazyload></p>
+<p>所以服务器为了证明$T_7$是$T_{13}$的前缀，需要返回蓝圈节点以及红圈节点，<strong>客户端利用蓝圈节点计算出</strong>$T_7’$<strong>与已知的</strong>$T_7$<strong>对比，利用蓝圈节点计算出</strong>$T_{13}’$<strong>与已知的</strong>$T_{13}$<strong>对比，两者都完全一致就说明</strong>$T_7$<strong>是</strong>$T_{13}$<strong>的前缀</strong>。</p>
+<p>这个证明同样是密码学安全的，因为假如恶意日志服务器想造假，证明某个旧版本日志是某个不同的新版本日志的前缀，蓝圈节点可以直接返回计算出旧版本日志的STH，但是需要伪造出红圈节点的哈希值使得配合蓝圈节点后计算结果是新版本日志的STH，哈希函数是单向的，这个伪造几乎不可能，所以只要服务器可以给出证明，那么客户端就可以相信旧版本日志是新版本日志的前缀。</p>
+<p>因为蓝圈节点是将旧版本日志长度M拆分成多个2的幂，所以蓝圈节点个数是$log(M)$的。红圈节点则是搭配蓝圈节点组成新版本的根节点，配合蓝圈节点的红圈节点数量是$log(N)$的。所以可以用$log(M)+log(N)&#x3D;log(MN)$的传输信息、时间复杂度完成校验。</p>
+<h3 id="认证流程"><a href="#认证流程" class="headerlink" title="认证流程"></a>认证流程</h3><p>有了前两个校验的理论基础后，就可以完整描述客户端遇到一个新证书B的认证流程：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs python">validate(bits B <span class="hljs-keyword">as</span> record R): <span class="hljs-comment"># 验证数据块B是否是第R个日志项</span><br>    <span class="hljs-keyword">if</span> R ≥ cached.N: <span class="hljs-comment"># R比当前客户端见过的日志长度cached.N大，这里是为了保证见过的日志足够新可以用于校验新证书</span><br>        N, T = server.Latest() <span class="hljs-comment"># 客户端需要找服务器获取最新的日志长度N，新日志的根节点哈希值T</span><br>        <span class="hljs-keyword">if</span> server.TreeProof(cached.N, N) cannot be verified: <span class="hljs-comment"># 客户端找服务器要自己缓存中长度对应的日志是新日志的前缀的证明，服务端返回后，客户端自行计算新旧根节点哈希值，与已知的cached.T和T对比完成校验</span><br>            fail loudly<br>        cached.N, cached.T = N, T <span class="hljs-comment"># 更新见过的日志长度、根节点哈希值为新日志的长度、根节点哈希值</span><br>    <span class="hljs-keyword">if</span> server.RecordProof(R, cached.N) cannot be verified using B: <span class="hljs-comment"># 客户端找服务器要自己缓存长度对应的日志证明第R个日志项的证明，客户端利用B计算出根节点哈希值与自己的cached.T对比进行校验</span><br>        fail loudly<br>    accept B <span class="hljs-keyword">as</span> record R <span class="hljs-comment"># 所有校验通过，接受新证书B</span><br></code></pre></td></tr></table></figure>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7/" class="print-no-link">#分支一致性</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>分支一致性 CT</div>
+      <div>http://captain32.github.io/2023/10/15/分支一致性-CT/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>张熙哲</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年10月15日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-SUNDR/" title="分支一致性 SUNDR">
+                        <span class="hidden-mobile">分支一致性 SUNDR</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#comments', function() {
+      var light = 'github-light';
+      var dark = 'github-dark';
+      var schema = document.documentElement.getAttribute('data-user-color-scheme');
+      if (schema === 'dark') {
+        schema = dark;
+      } else {
+        schema = light;
+      }
+      window.UtterancesThemeLight = light;
+      window.UtterancesThemeDark = dark;
+      var s = document.createElement('script');
+      s.setAttribute('src', 'https://utteranc.es/client.js');
+      s.setAttribute('repo', 'Captain32/Utterances-comment');
+      s.setAttribute('issue-term', 'pathname');
+      
+      s.setAttribute('label', 'utterances');
+      
+      s.setAttribute('theme', schema);
+      s.setAttribute('crossorigin', 'anonymous');
+      document.getElementById('comments').appendChild(s);
+    })
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+  
+  
+
+
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="leancloud-site-pv-container" style="display: none">
+        总访问量 
+        <span id="leancloud-site-pv"></span>
+         次
+      </span>
+    
+    
+      <span id="leancloud-site-uv-container" style="display: none">
+        总访客数 
+        <span id="leancloud-site-uv"></span>
+         人
+      </span>
+    
+    
+
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  
+      <script>
+        if (!window.MathJax) {
+          window.MathJax = {
+            tex    : {
+              inlineMath: { '[+]': [['$', '$']] }
+            },
+            loader : {
+              load: ['ui/lazy']
+            },
+            options: {
+              renderActions: {
+                insertedScript: [200, () => {
+                  document.querySelectorAll('mjx-container').forEach(node => {
+                    let target = node.parentNode;
+                    if (target.nodeName.toLowerCase() === 'li') {
+                      target.parentNode.classList.add('has-jax');
+                    }
+                  });
+                }, '', false]
+              }
+            }
+          };
+        } else {
+          MathJax.startup.document.state(0);
+          MathJax.texReset();
+          MathJax.typeset();
+          MathJax.typesetPromise();
+        }
+
+        Fluid.events.registerRefreshCallback(function() {
+          if ('MathJax' in window && MathJax.startup.document && typeof MathJax.startup.document.state === 'function') {
+            MathJax.startup.document.state(0);
+            MathJax.texReset();
+            MathJax.typeset();
+            MathJax.typesetPromise();
+          }
+        });
+      </script>
+    
+
+  <script  src="https://lib.baomitu.com/mathjax/3.2.2/es5/tex-mml-chtml.js" ></script>
+
+  <script defer src="/js/leancloud.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

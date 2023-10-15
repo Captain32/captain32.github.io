@@ -1,0 +1,1085 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=light>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="张熙哲">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="论文标题为《In Search of an Understandable Consensus Algorithm》，发表于2014年，这篇论文主要介绍了共识算法Raft，易懂并且提供强一致性语义，已经被广泛使用在了工业界分布式系统中。 应用场景为什么需要共识算法？因为为了容错，往往将同样的内容存在多个备份上，但是各种硬件、软件故障通常另多个备份陷入不一致的状态，为了保证每个备份上存的内容一致，并且">
+<meta property="og:type" content="article">
+<meta property="og:title" content="共识算法 Raft">
+<meta property="og:url" content="http://captain32.github.io/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/index.html">
+<meta property="og:site_name" content="Captain">
+<meta property="og:description" content="论文标题为《In Search of an Understandable Consensus Algorithm》，发表于2014年，这篇论文主要介绍了共识算法Raft，易懂并且提供强一致性语义，已经被广泛使用在了工业界分布式系统中。 应用场景为什么需要共识算法？因为为了容错，往往将同样的内容存在多个备份上，但是各种硬件、软件故障通常另多个备份陷入不一致的状态，为了保证每个备份上存的内容一致，并且">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE1.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE2.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE3.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE4.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE5.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE6.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE7.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE8.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE9.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE10.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE11.png">
+<meta property="article:published_time" content="2023-10-15T12:15:59.000Z">
+<meta property="article:modified_time" content="2023-10-15T12:37:33.682Z">
+<meta property="article:author" content="张熙哲">
+<meta property="article:tag" content="读论文">
+<meta property="article:tag" content="共识算法">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://captain32.github.io/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE1.png">
+  
+  
+  
+  <title>共识算法 Raft - Captain</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"captain32.github.io","root":"/","version":"1.9.5-a","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":["home"]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":6},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"0DHAyLeOfwqNRanYXNuL4Mhr-gzGzoHsz","app_key":"lq0Ly742okJc5yeBJcZaiHSF","server_url":"https://0dhayleo.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+    <!-- Google tag (gtag.js) -->
+    <script async>
+      if (!Fluid.ctx.dnt) {
+        Fluid.utils.createScript("https://www.googletagmanager.com/gtag/js?id=", function() {
+          window.dataLayer = window.dataLayer || [];
+          function gtag() {
+            dataLayer.push(arguments);
+          }
+          gtag('js', new Date());
+          gtag('config', '');
+        });
+      }
+    </script>
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 60vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Captain&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle">共识算法 Raft</span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-10-15 20:15" pubdate>
+          2023年10月15日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          12k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          103 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="leancloud-page-views"></span> 次
+        </span>
+        
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar category-bar" style="margin-right: -1rem">
+    
+
+
+
+
+
+<div class="category-list">
+  
+  
+    
+    
+    
+    <div class="category row nomargin-x">
+      <a class="category-item 
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="MIT6.824 分布式系统"
+        id="heading-aa244c0b2998c7a31646f84d6cc293ba" role="tab" data-toggle="collapse" href="#collapse-aa244c0b2998c7a31646f84d6cc293ba"
+        aria-expanded="true"
+      >
+        MIT6.824 分布式系统
+        <span class="list-group-count">(16)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse show" id="collapse-aa244c0b2998c7a31646f84d6cc293ba"
+           role="tabpanel" aria-labelledby="heading-aa244c0b2998c7a31646f84d6cc293ba">
+        
+        
+          
+  <div class="category-post-list">
+    
+    
+      
+      
+        <a href="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/" title="共识算法 Raft"
+           class="list-group-item list-group-item-action
+           active">
+          <span class="category-post">共识算法 Raft</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/" title="分布式事务 FaRM"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式事务 FaRM</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-Spanner/" title="分布式事务 Spanner"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式事务 Spanner</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/" title="分布式文件系统 Frangipani"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式文件系统 Frangipani</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/" title="分布式文件系统 GFS"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式文件系统 GFS</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-MapReduce/" title="分布式计算 MapReduce"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式计算 MapReduce</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-Spark/" title="分布式计算 Spark"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式计算 Spark</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/" title="分支一致性 CT"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分支一致性 CT</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-SUNDR/" title="分支一致性 SUNDR"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分支一致性 SUNDR</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%8D%8F%E8%B0%83%E6%9C%8D%E5%8A%A1-Zookeeper/" title="协调服务 Zookeeper"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">协调服务 Zookeeper</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/" title="因果一致性 COPS"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">因果一致性 COPS</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%AD%98%E7%AE%97%E5%88%86%E7%A6%BB-Aurora/" title="存算分离 Aurora"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">存算分离 Aurora</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/" title="状态复制 VM-FT"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">状态复制 VM-FT</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CR/" title="链式复制 CR"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">链式复制 CR</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CRAQ/" title="链式复制 CRAQ"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">链式复制 CRAQ</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84-Memcached/" title="高并发缓存架构 Memcached"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">高并发缓存架构 Memcached</span>
+        </a>
+      
+    
+  </div>
+
+        
+      </div>
+    </div>
+  
+</div>
+
+
+  </aside>
+
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">共识算法 Raft</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <p>论文标题为《In Search of an Understandable Consensus Algorithm》，发表于2014年，这篇论文主要介绍了共识算法Raft，易懂并且提供强一致性语义，已经被广泛使用在了工业界分布式系统中。</p>
+<h2 id="应用场景"><a href="#应用场景" class="headerlink" title="应用场景"></a>应用场景</h2><p><img src="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE1.png" srcset="/img/loading.gif" lazyload alt="图1" title="图1"><br>为什么需要共识算法？因为为了容错，往往将同样的内容存在多个备份上，但是各种硬件、软件故障通常另多个备份陷入不一致的状态，为了保证每个备份上存的内容一致，并且在发生故障后可以恢复回故障前的状态，所以需要共识算法。</p>
+<p>例如上图所示的kv存储，服务器上画出了三部分：共识模块、日志、状态机。状态机是真正的kv表，对外部Client提供读写服务就是基于状态机上的状态。共识模块则是共识算法工作的地方，目标就是为了让多个备份机器上的状态机保持一致，对于Raft而言，它将所有状态机支持的操作以一个个日志项的形式记录下来，共识模块需要共识的就是日志项，确保每个备份机器上都有完全相同的已提交日志记录，这样状态机基于日志进行状态变更时就可以保证各个备份上的状态一致。<br>Raft有以下保证：</p>
+<ul>
+<li>确保强一致性，确保任何情况下不会返回错误(违反一致性)的结果</li>
+<li>只要Raft集群中超过一半的机器存活，就可以对外提供服务</li>
+<li>不依赖时钟(像Spanner使用了特殊时钟硬件利用时间戳给操作全局排序)</li>
+<li>一个外部请求产生的指令，只需要超过一半的机器达成共识，就可以产生回复，不需要等慢的那一小半</li>
+</ul>
+<h2 id="Raft算法"><a href="#Raft算法" class="headerlink" title="Raft算法"></a>Raft算法</h2><p>Raft集群会首先选出一个leader，leader会全权授理所有Client的请求，将请求转化为日志项，leader需要负责将日志项复制到所有follower上，并且在收到超过半数回复后确定可以提交日志项，告知所有follower可以将该日志项apply到状态机中。leader也可能会宕机，剩余的follower会因为长期未收到leader心跳发起新的选举，选出一个新leader。因此，Raft集群内主要就是两种RPC请求：</p>
+<ul>
+<li>RequestVote：某台机器发起新一轮选举，向其他机器请求选票</li>
+<li>AppendEntries：leader向其他follower复制日志项，该请求还可以不包含任何日志项而用于leader发送心跳</li>
+</ul>
+<p>Raft算法各个机器需要维护的状态(state)、两个RPC请求、需遵守的规则如下图所示：<br><img src="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE2.png" srcset="/img/loading.gif" lazyload alt="图2" title="图2"><br>按照上图的描述，Raft算法在任何时刻可以有以下保证：</p>
+<ul>
+<li>Election Safety(§5.2)：一个任期term中至多有一个leader</li>
+<li>Leader Append-Only(§5.3)：leader不会修改、覆盖、删除自己的已有日志项，只会在自己已有日志项之后添加新的日志项</li>
+<li>Log Matching(§5.3)：如果两台机器在某个相同索引的日志项具有相同的term任期号，那么该日志项及其之前的所有日志项完全一致</li>
+<li>Leader Completeness(§5.4.1)：如果一个日志项被提交了，那么所有之后任期的leader的日志上都会有该日志项</li>
+<li>State Machine Safety(§5.4.3)：如果一个日志项被某台机器apply了，所有其他机器都会在相同索引处apply同样的日志项</li>
+</ul>
+<h3 id="角色与任期-§5-1"><a href="#角色与任期-§5-1" class="headerlink" title="角色与任期(§5.1)"></a>角色与任期(§5.1)</h3><p>在Raft集群中机器处于三种角色中的一种：leader、follower、candidate，三种角色之间的切换如下图所示。<br><img src="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE3.png" srcset="/img/loading.gif" lazyload alt="图3" title="图3"><br>在大多数情况下，集群中有一个leader，其余机器是follower。在follower长时间没有收到leader心跳的时候就会变成candidate发起选举，这一时期可能有多个candidate，但是这个时期是短暂的，目标就是选出一个leader。Raft将时间如下图所示划分成不确定长度的term，每一次选举都会使得term向前推进，如果有一个candidate赢得选举(获得超过一半的票)，那么就升级为leader，在这个term中负责处理外部的请求、同步日志项。如果如同下图t3发生了分票现象(多个candidate分别获得一些票，但每个都小于等于一半)，那么这个term就会没有leader，接着因为心跳超时再次递进到下一个term的选举。<br><img src="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE4.png" srcset="/img/loading.gif" lazyload alt="图4" title="图4"><br>term在Raft算法中就如同<strong>逻辑时钟</strong>一样的存在，更高的term意味着在时间线上更新，所以在Raft算法中，每个日志项都会记录自己是在哪个term被添加到日志中的，<strong>每台机器也会在状态中持久化自己所认为的当前term(图2中的currentTerm)<strong>。在Raft的两个RPC接口中，无论是请求还是回复都会带上双方的currentTerm，使得机器可以尽快知道自己是否落伍。</strong>假如机器在交流中发现更高的term，就代表自己已经落伍，机器会直接切换为follower角色并更新自己的currentTerm。机器收到的具有更低term的请求都会被无视，机器会返回自己的currentTerm令其知道其已落伍。</strong></p>
+<h3 id="Leader选举-§5-2"><a href="#Leader选举-§5-2" class="headerlink" title="Leader选举(§5.2)"></a>Leader选举(§5.2)</h3><p>当follower、candidate超过一定时间没有收到leader的心跳，就会递增自己的currentTerm，角色变为candidate发起新term的选举。它会把票投给自己，并且向所有其他机器发送RequestVote请求。Raft规定<strong>每个机器在每个term最多给一个candidate投票</strong>，投票者会把票投给第一个到来请求对应的candidate(为了一致性的考虑，还需要检查candidate是否够格，在§5.4.1介绍)，为了避免自己故障重启后忘记已经投了票而继续给其他candidate投票(这会导致总票数超过集群机器数，可能会选出多个leader，即得票都超过一半)，<strong>投票信息votedFor(图2中votedFor)需要持久化，记录本term给谁投了票，哪怕故障重启了也不会忘记</strong>。</p>
+<p>candidate会保持现状直到以下三者之一发生：</p>
+<ul>
+<li>自己赢得选举(超过一半机器投票给自己)，自己转变为leader，给其他所有机器发送心跳</li>
+<li>其他candidate成为leader，给自己发送了心跳，检查其term大于等于自己的currentTerm就认定其是leader，自己转变为follower</li>
+<li>自己没有成为leader，并且超时没有收到leader心跳，维持candidate身份，再次递进currentTerm发起新一轮选举</li>
+</ul>
+<p>第三种情况大多是因为分票现象的发生，虽然不影响系统正确性，但是频繁的分票会使得很多轮选举才可以成功选出leader。<strong>为了避免频繁的分票现象，Raft令每台机器的心跳超时时间加入一部分随机因素</strong>，使得不同机器不会在同一时刻都变成candidate来分票，而是因为随机性有的机器先变成candidate早早地获得选票成为leader。</p>
+<p>关于超时时间的设定，论文推荐满足<code>broadcastTime ≪ electionTimeout ≪ MTBF</code>这样的关系，≪意味着数量级上的小于。broadcastTime指的是机器之间网络IO的延时，它需要比选举超时时间小一个数量级，因为网络的波动经常会增加延迟，假如broadcastTime和electionTimeout比较接近，那一个网络波动就可能触发选举，使得选举过于频繁。MTBF指的是一台机器平均发生故障时间(通常为几个月或更多)，electionTimeout需要比MTBF小一个或几个数量级，假如electionTimeout和MTBF很接近，那么leader发生故障时，要等很久才会引发新的选举，这期间Raft集群无法做任何工作，所以需要能够更快应对leader的故障。综上，Raft根据broadcastTime(大约0.5-20ms)和MTBF(几个月或更多)给出了electionTimeout的选择，大概在10-500ms。</p>
+<h3 id="日志复制-§5-3"><a href="#日志复制-§5-3" class="headerlink" title="日志复制(§5.3)"></a>日志复制(§5.3)</h3><p>当一个机器被选为leader后，就需要负责处理Client的所有请求，将请求转化为一系列指令以日志项的形式添加到日志中。leader通过AppendEntries接口将日志项同步给所有follower，<strong>当有超过一半的follower确认收到后，就可以认为日志项已提交</strong>，进而可以将日志项apply到状态机中并响应Client。对于那些没有收到回复的follower，leader会一直重试AppendEntries直到得到回复，leader虽然可以在超过一半确认时就回复Client，但最终目标一定是让所有follower都收到日志项。<br><img src="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE5.png" srcset="/img/loading.gif" lazyload alt="图5" title="图5"><br>对于图1所示的kv存储，日志的样子大概如图5所示，每个日志项存了一个指令，并且日志项中还存了这个日志项是由哪个term的leader添加的。对于一个日志项而言，比较关键的是它的term和index(即在日志中的索引、位置)，index主要是标识了不同日志项的相对顺序，所有机器都是从前向后apply日志项。对于日志，Raft有以下保证：</p>
+<ul>
+<li><strong>如果两台机器在某个index的日志项具有相同的term，那么这两个日志项完全一样。</strong>该保证来自于leader在自己的任期(term)内在某个index最多添加一个日志项，并且这个日志项的位置index不会再做任何改变。</li>
+<li><strong>如果两台机器在某个index的日志项具有相同的term，那么两台机器的日志在该日志项之前的部分也完全一样。</strong>该保证来自于leader在AppendEntries请求中会带上prevLogIndex和prevLogTerm两个参数，分别代表了当前复制日志项的前一个日志项的index和term。follower在接到请求后，需要先验证前一个日志项的index和term是否一致，验证通过后才可以将新的日志项添加到日志中，根据归纳法可知，前一个日志项保证了前前一个日志项的一致，所以就保证了当前日志项之前的所有日志项都一致。</li>
+</ul>
+<p>在大部分正常情况下，leader和follower的日志是如图5所示一样，一致但伴有延迟。但有时候故障的发生、网络分区会使得leader和follower在相同index的日志项不一致，如下图所示。与leader的日志相比，a和b只是有延迟，缺少一些日志项；c是第6个term的leader，index为11的日志项还没来得及复制给其他机器就宕机，在目前term沦为follower；d与c相似，两者都有多余的未提交日志项，不过d是第7个term的leader；e和f不光缺一些日志项，还多了一些未提交日志项，这种情况一般也是当选leader后没来得及给足够多的follower复制日志项就被网络分区了，导致自娱自乐了。<br><img src="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE6.png" srcset="/img/loading.gif" lazyload alt="图6" title="图6"><br>为了解决图6所示的日志不一致的问题，Raft规定<strong>一切日志以当前leader为准，当前leader要做的就是把所有follower的日志同步成和自己一样，所以不需要对自己的日志做任何修改，只会基于自己的日志继续添加日志项</strong>。这样的规定是会覆盖一些follower上的日志项的，之所以可以覆盖这些日志项，是因为这些都是未提交的(没有对外产生影响)，这一部分的证明会在之后说明。</p>
+<p>为了能够将follower的日志同步成和leader一样，如前文描述，AppendEntries请求中加了prevLogIndex和prevLogTerm两个参数，用于follower对比前一个日志项的index和term和leader是否一致。在不一致时，通过回复中的success字段告知leader，leader就会将要传递的日志项往前推一个，直到推到两者一致的日志项(<strong>删除多余的未提交日志项</strong>)，比如图6中leader给e传日志项时就会不断回退直到index为6的日志项。follower在检查通过后就会在对应index添加leader传来的日志项，并删除之后的日志项(<strong>若有，删除多余的未提交日志项</strong>)。</p>
+<p>在具体实现中，leader的状态中需要维护图2所示的nextIndex[]和matchIndex[]两个数组，分别存了每个follower下一个需要复制的日志项index、每个follower已知复制完成最大的日志项Index，这两个数组都不需要持久化，遇到故障丢失就丢失了。在leader刚被选举完成后，会初始化两个数组，nextIndex[]的所有项都被初始化为leader日志中下一个日志项的index(以图6为例就是11)，matchIndex[]的所有项都被初始化为0。刚才说的<strong>不断回退就是指的nextIndex[]中对应元素的不断减1，复制成功的请求就会令nextIndex[]中对应元素加1</strong>，同时<strong>成功的回复会令matchIndex中对应follower已知复制完成最大的日志项Index向前推进</strong>。</p>
+<p><strong>leader会根据matchIndex中每个follower的复制情况算出当前term(要求当前term的原因见§5.4.2)已提交的最新日志项</strong>(即matchIndex中超过一半元素都大于等于该日志项的Index)，并根据其index更新自己的commitIndex。leader会在AppendEntries请求中的leaderCommit字段填上自己的commitIndex，以此告知所有follower当前日志项的commit情况，所有小于等于leaderCommit的日志项都是已提交的，都可以apply到状态机中。每个机器的状态中都有图2所示的commitIndex和lastApplied两个字段，两个字段同样不需要持久化，初始设置为0，<strong>leader是根据matchIndex[]推进commitIndex，follower则是被动接受leader的leaderCommit更新到自己的commitIndex，lastApplied则代表当前机器已经将前lastApplied个日志项apply到自己的状态机</strong>。所有机器都会有线程检查lastApplied和commitIndex的大小，并持续的将(lastApplied,commitIndex]范围内的日志项apply到状态机中。机器故障后恢复其实就是从头apply日志项恢复状态机的状态。</p>
+<p>刚才的描述可以发现，leader在AppendEntries失败时会以步长为1的速度回退nextIndex[]对应元素，其实可以让follower返回更多的失败信息，<strong>减少回退次数</strong>，下面是6.824 Morris给出的一种可能的实现：</p>
+<blockquote>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>Case 1</strong></th>
+<th><strong>Case 2</strong></th>
+<th><strong>Case 3</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>S1</strong></td>
+<td>4 5 5</td>
+<td>4 4 4</td>
+<td>4</td>
+</tr>
+<tr>
+<td><strong>S2</strong></td>
+<td>4 6 6 6</td>
+<td>4 6 6 6</td>
+<td>4 6 6 6</td>
+</tr>
+</tbody></table>
+<p>S2是第6个term的leader，当S2给S1传送最后一个日志项时，AppendEntries请求中prevLogTerm为6，由于和自己的日志项不匹配，S1会拒绝该请求，S1的回复中包括：</p>
+<ul>
+<li>XTerm：如果有冲突，设置为S1上冲突日志项的term(比如Case 1中就是5)</li>
+<li>XIndex：如果有冲突，设置为S1上隶属于XTerm的第一个日志项的index(比如Case 1中就是2)</li>
+<li>XLen：S1日志的长度(比如Case 1中就是3)</li>
+</ul>
+<p>根据S1的回复，S2分三种情况进行处理，分别对应上面三个Case：</p>
+<ul>
+<li>Case 1：leader的日志中没有日志项的term等于XTerm，令nextIndex为XIndex(示例中为2)</li>
+<li>Case 2：leader的日志中存在日志项的term等于XTerm，令nextIndex为leader的最后一个term为XTerm的日志项的下一个index(示例中为2)</li>
+<li>Case 3：没有冲突，仅仅是follower有延迟，令nextIndex为XLen+1(示例中为2)</li>
+</ul>
+<p>所以在上面的3个示例中，都可以快速回退到第2个日志项，而不是一步一步的回退。</p>
+</blockquote>
+<h3 id="安全性-§5-4"><a href="#安全性-§5-4" class="headerlink" title="安全性(§5.4)"></a>安全性(§5.4)</h3><h4 id="选举限制-§5-4-1"><a href="#选举限制-§5-4-1" class="headerlink" title="选举限制(§5.4.1)"></a>选举限制(§5.4.1)</h4><p>Raft规定leader要将所有follower的日志同步成和自己一样，这个规定限制了数据的传输是leader到follower单向的。因此<strong>需要在leader选举时就选出足够新的leader</strong>，如果选比较过时的机器做leader很有可能就会丢失一些已提交日志项(比如图6中的b)。为了能够在选举时选出足够新的机器做leader，选举阶段candidate发送RequestVote请求时需要有两个字段lastLogIndex和lastLogTerm指明自己日志中最后一个日志项的index和term，<strong>机器在收到RequestVote请求时，需要确保candidate最后一个日志项不旧于自己最后一个日志项，才能给它投票</strong>。判断两个日志项的新旧首先比较term，term大的新，term相同的情况下，index大的新。</p>
+<p>这个限制保证了赢得选举的leader的日志不落后于超过一半的机器。Raft中日志项已提交的前提条件就是超过一半的机器存了该日志项，所有已提交的日志项存在了超过一半的机器上，那么和给leader投票的那一大半机器一定有交集至少有一台机器，而leader的日志至少和它一样新，那么leader一定就有这个已提交日志项，那么就保证了<strong>新选出的leader就一定存了所有已提交的日志项</strong>。</p>
+<h4 id="只能显式提交本term日志项-§5-4-2"><a href="#只能显式提交本term日志项-§5-4-2" class="headerlink" title="只能显式提交本term日志项(§5.4.2)"></a>只能显式提交本term日志项(§5.4.2)</h4><p>leader在上任后会将follower的日志同步成和自己一样，这期间也包括向follower同步之前term的日志项，但是<strong>哪怕之前term的日志项已经在超过一半的机器上备份了，leader也不能显式提交之前的term的日志项(即commitIndex设置为该日志项的index)，而是应该提交自己term的日志项顺带把之前term的日志项提交</strong>。之所以这样要求，先看下图所示的例子。<br><img src="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE7.png" srcset="/img/loading.gif" lazyload alt="图7" title="图7"><br>上图(a)(b)(c)(e)是成功案例，上图(a)(b)(c)(d)给出了不加这样限制的失败样例：</p>
+<ul>
+<li>(a)中term为2，index为2的日志项(上图黄色)仅复制到S1和S2两台机器上后leader就宕机了。</li>
+<li>(b)中S5为leader(可以获得S3、S4、S5的选票，超过一半)，term为3，仅在自己的日志上添加了index为2、term为3的日志项(上图蓝色)就宕机了。</li>
+<li>(c)中S1成为leader(可以获得S1、S2、S3、S4的选票)，term为4，该leader将自己日志上index为2、term为2的日志项(上图黄色)复制给了S3，使得该日志项在超过一半的机器上备份，<strong>假设此时leader显式提交了这个日志项并且apply到状态机后对外部Client提供了服务，之后这个日志项(上图黄色)就绝对不应该被覆盖、删除</strong>。这个leader随后在自己的日志上添加了index为3、term为4的日志项(上图红色)就宕机了。</li>
+<li>(d)中S5成为leader(可以获得S2、S3、S4、S5的选票)，term为5，该leader将自己日志上index为2、term为3的日志项(上图蓝色)复制给了所有follower，这就<strong>将(c)中已提交的日志项(上图黄色)覆盖掉了，相当于回退了已提交的日志项，违背一致性</strong>！</li>
+</ul>
+<p>之所以会产生这样的结果，是因为<strong>Raft中的日志项始终记录了自己被添加到日志时的term，而因为term在Raft中有着逻辑时钟的地位，选举、复制时低term对高term绝对服从</strong>。在这种情况下，<strong>现任leader假如显式提交了前任的日志项，虽然自己用高term身份做了提交这个操作，但没有给予这个日志项应有的保护(日志项的term还是之前的低term，比如上图c中黄色日志项)<strong>，在自己宕机后，</strong>下一任leader完全可以因为在相同index具有更高term的日志项(比如上图d中蓝色日志项)而覆盖掉现任leader提交的日志项</strong>。为了能够保护自己提交的日志项，Raft就限制了leader只能显式提交当前term的日志项(上图e中红色日志项)，由于Raft中两台机器上某个index日志项的一致隐喻着之前所有日志项的一致(§5.3)，所以就顺带提交了之前term的日志项(上图e中黄色日志项)。<strong>在这种顺带提交的保护下，上图(e)中S5根本无法赢得选举，因为日志比超过一半的机器旧(S1、S2、S3)，就不会覆盖掉已提交的日志项。</strong></p>
+<p>在这样的限制条件下，假如新leader刚上任但是一直没有Client请求，就会无法确认之前的日志项是否已提交，所以更新不了CommitIndex也就无法推进apply日志项的工作，所以往往新leader上任后就添加一个包含空操作的日志项，这样可以快速的确认CommitIndex，顺带提交了之前的日志项。</p>
+<h4 id="安全性证明-§5-4-3"><a href="#安全性证明-§5-4-3" class="headerlink" title="安全性证明(§5.4.3)"></a>安全性证明(§5.4.3)</h4><p>任何一台机器apply某个日志项的前提是该日志项已提交，而已提交的日志项会存在当前及之后所有leader的日志中，并且始终具有相同的index。这确保了机器apply某个日志项时，这个日志项及其之前的日志项都与leader相同，也会与未来的leader相同。所以这确保了<strong>如果一个日志项被某台机器apply了，所有其他机器都会在相同索引处apply同样的日志项</strong>。同时Raft要求机器从前向后apply已提交的日志项，所以不同机器apply日志项的顺序、内容都是完全一样的，保证了多个机器之间状态机的一致。</p>
+<h2 id="集群变更"><a href="#集群变更" class="headerlink" title="集群变更"></a>集群变更</h2><p>Raft集群很可能碰到添加机器、减少机器、替换机器等变更需求，集群成员的变更一般会影响Raft对于大多数(超过一半)这个关键条件的判断，所以并不能是简单添加、删除机器就可以了，变更也需要以日志项的形式让集群中的机器达成共识。但是<strong>整个过程并不是对新配置</strong>$C_{new}$<strong>达成共识，就可以两阶段的将旧配置</strong>$C_{old}$<strong>切换为</strong>$C_{new}$。如下图所示，$C_{old}$中有三台机器，$C_{new}$中新添了两台机器，在同一时刻可以有两台机器(S1、S2)停留在旧配置形成大多数，三台机器切换到新配置(S3、S4、S5)形成大多数，这样可能会导致在集群中选出两个leader，分别遵循旧配置和新配置，使得Raft集群发生脑裂，有两个leader对外服务，导致不一致！<br><img src="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE8.png" srcset="/img/loading.gif" lazyload alt="图8" title="图8"><br>为了让配置切换的过程不影响一致性，Raft将配置的切换设计成了下图所示的三阶段。需要注意的是，<strong>与常规日志项不同，机器收到集群配置的日志项时不需要考虑其是否被提交，就要遵守这个配置</strong>。下面介绍一下三个阶段：</p>
+<ol>
+<li>旧配置中的leader收到变更集群配置的请求后，会将当前配置$C_{old}$和新配置$C_{new}$联合成$C_{old,new}$作为新的日志项添加到日志中，并开始复制给$C_{old,new}$包含的所有机器。由于集群配置的日志项不考虑是否被提交就要遵守，所以leader会依据$C_{old,new}$来判断$C_{old,new}$及其之后的日志项是否被提交(之前的只需要满足$C_{old}$即可)。$C_{old,new}$是比较特殊的联合了两个配置的过渡配置，使用$C_{old,new}$判断已提交时，需要既满足$C_{old}$超过一半又要满足$C_{new}$超过一半，这被Raft称为<strong>联合共识</strong>。当leader根据联合共识的要求判定$C_{old,new}$已提交后，就进入了第二阶段。在第一阶段中有可能遇到leader宕机重新选举的情况，重新选的leader一定是旧配置中的机器，由于$C_{old,new}$复制进度不确定，选出来的leader可能具有$C_{old,new}$日志项也可能没有，如果没有的话就整体又维持在了旧配置，需要外部请求再次重试重新发起配置切换。</li>
+<li>$C_{old,new}$日志项提交之后，leader会将$C_{new}$日志项添加到日志中，并且leader需要向$C_{new}$包含的机器发送该日志项。同样由于集群配置的日志项不考虑是否被提交就要遵守，所以leader通过$C_{new}$来判断$C_{new}$及其之后的日志项是否已提交(之前的需要满足$C_{old,new}$的联合共识)。当leader根据$C_{new}$来判断记录$C_{new}$的日志项已经提交，就进入了第三阶段。同样第二阶段中可能遇到leader宕机，由于$C_{new}$复制进度不确定，选出来的leader可能具有$C_{new}$日志项也可能没有，但如论如何leader都会有$C_{old,new}$日志项，可以再次将$C_{new}$日志项添加到日志中，确保了一定会进行配置切换。</li>
+<li>$C_{new}$日志项提交之后，就可以认为配置切换已经完成，新配置中的机器可以依据新配置正常的工作，接下来就是收尾工作。所有不在新配置中的机器可以关停了。还有一种情况是第二阶段中的leader并不在$C_{new}$中，理应被踢出集群，当该leader完成了$C_{new}$日志项的提交(统计是否超过一半时不把自己算进去)工作后，就会选择自动退出，随后新集群会因为心跳超时选出自己的新leader，正式完成了配置切换。</li>
+</ol>
+<p><img src="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE9.png" srcset="/img/loading.gif" lazyload alt="图9" title="图9"><br>给集群添加新机器的时候，开始时该机器是一张白纸，假如这时候就进行配置变更，新机器需要追很长时间的日志才能走到配置所在的日志项，追赶期间整个集群的工作都可能处于等待状态。为了避免因为配置更新带来可用性的损失，Raft规定新机器加入集群前要先“伴飞”一段时间，这期间不断追赶日志，但不参与任何投票，等日志追的差不多了，就可以开始配置变更，整个配置变更过程就会更快。</p>
+<p>还有一个问题就是假如没有及时关闭在旧配置中但不在新配置中的机器，这些机器很可能不断的处于“心跳超时-增加term-发起选举”的循环，它发送给新配置中机器的RequestVote请求很容易引起新集群中不必要的选举。为了避免这些旧机器的骚扰，Raft规定机器收到leader心跳后的一段时间内无视RequestVote请求，这个一段时间被设置为心跳超时时间的最小值，所以只要leader和follower之间的心跳正常，就不会被这些RequestVote骚扰请求打搅。同时这并不影响正常的选举，当leader宕机后，没有了心跳信息，follower在超时后将不会无视RequestVote请求，可以正常进入选举流程。</p>
+<h2 id="日志压缩"><a href="#日志压缩" class="headerlink" title="日志压缩"></a>日志压缩</h2><p>可以看出，Raft用不断增长的日志记录了所有操作，随着服务的不断运行，日志会越来越长，而日志是所有机器必须持久化的状态，这会给机器带来没有上限的硬盘需求。为了避免这个问题，Raft采用快照的形式压缩日志，可以把<strong>已提交的</strong>日志项apply到状态机，把状态机的当前状态做个快照，之后基于快照中的状态在其上apply后续的日志项就可以了，快照所包含的日志项就可以被删掉而不占用磁盘空间。快照不光leader可以做，follower也可以在leader不知情的情况下自己做快照(判断条件一般是日志长度达到阈值)。对于之前kv存储的例子，日志压缩的示意图如下：<br><img src="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE10.png" srcset="/img/loading.gif" lazyload alt="图10" title="图10"><br>Raft的快照不光需要存状态机的状态，还需要记录包含的最后一个日志项的index和term，这样可以在快照后紧接着AppendEntries时用来判断prevLogIndex和prevLogTerm是否一致。lastIndex也会在机器故障恢复时用于初始化commitIndex和lastApplied。为了兼容集群变更，快照中需要记录所见到的最后一个配置，这样就不需要存对应的配置日志项了。</p>
+<p>日志压缩还会带来一个问题，当leader给落伍很久的follower发日志项的时候，follower所需的一些日志项可能已经被leader做快照的时候删掉了，那么就需要换一个思路，不传日志项而是传快照。所以就有了下图所示新的RPC接口InstallSnapshot，用于leader向落伍很久的follower传快照。follower接到足够新的快照的时候，就直接存起来，假如快照中最后一个日志项的index和term与自己对应index的日志项冲突，那就把自己的日志全删掉；如果不冲突那就删掉快照包含的日志项，保留快照不包含的后续日志项。<br><img src="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/%E5%9B%BE11.png" srcset="/img/loading.gif" lazyload alt="图11" title="图11"></p>
+<h2 id="客户端交互"><a href="#客户端交互" class="headerlink" title="客户端交互"></a>客户端交互</h2><p>Raft集群中leader全权授理Client请求，Client假如发请求给follower，follower会拒绝请求并告知Client目前知道的leader，接下来Client就会找leader发送请求。</p>
+<p>Raft目标要给客户端提供强一致性语义，Client发起的请求可能已经被leader提交了，但是可能没来得及回复leader就宕机或者是发送了回复但因为网络故障没有送到Client，Client就会认为自己的请求失败进而发起重试，重试可能会使得Client认知中的状态与集群维护的状态机不一致(比如Client给某个v加1，在Client视角成功了一次，但是实际上Raft集群成功完成两次，给v加了2)。所以Raft集群需要做<strong>幂等处理</strong>，机器的状态可以添加一个Hash表来处理幂等，记录下&lt;ClientID,RequestID&gt;到回复的映射，当遇到相同Client的相同请求的时候直接返回预存回复即可，每个机器apply日志项的时候就会更新这个Hash表，哪怕切换了leader，这个Hash表也是一致的，就避免了Client重试对一致性的影响。</p>
+<p>虽然只读请求不会修改状态，但是假如直接让leader根据自己的状态回复Client的只读请求是可能违反一致性的。比如某个leader S1被网络分区了，虽然它还认为自己是leader，但由于无法联系超过一半的机器，将无法推进任何日志项的提交，另外的网络分区很可能选举了新的leader S2已经提交了很多新日志项。假如有Client发送只读请求到S1，S1自认为leader就直接回复，但其实回复的是过时数据，因为S2已经推进了很多新日志项的提交！所以对于只读请求，并不能是leader直接返回就可以，一种最直白的解决方式就是把<strong>只读请求也以日志项的形式在多个机器中同步，当提交了该日志项后leader可以apply该日志项，这时再根据状态机回复Client，这就保证了一致性</strong>。</p>
+<p>还有一种更复杂但效率更高的方式处理只读请求，就是赋予leader租约，每当leader无论是RequestVote还是AppendEntries获得了大多数肯定回复，就会赋予leader一个租约，哪怕leader发生了切换，新leader也需要等到上一个leader的租约过期才允许处理写请求。<strong>新leader等待租约过期才会处理写请求保证了旧leader在持有租约期间返回的数据不可能是旧数据，进而保证了一致性</strong>。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/" class="print-no-link">#读论文</a>
+      
+        <a href="/tags/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/" class="print-no-link">#共识算法</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>共识算法 Raft</div>
+      <div>http://captain32.github.io/2023/10/15/共识算法-Raft/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>张熙哲</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年10月15日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/10/15/%E5%8D%8F%E8%B0%83%E6%9C%8D%E5%8A%A1-Zookeeper/" title="协调服务 Zookeeper">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">协调服务 Zookeeper</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-Spark/" title="分布式计算 Spark">
+                        <span class="hidden-mobile">分布式计算 Spark</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#comments', function() {
+      var light = 'github-light';
+      var dark = 'github-dark';
+      var schema = document.documentElement.getAttribute('data-user-color-scheme');
+      if (schema === 'dark') {
+        schema = dark;
+      } else {
+        schema = light;
+      }
+      window.UtterancesThemeLight = light;
+      window.UtterancesThemeDark = dark;
+      var s = document.createElement('script');
+      s.setAttribute('src', 'https://utteranc.es/client.js');
+      s.setAttribute('repo', 'Captain32/Utterances-comment');
+      s.setAttribute('issue-term', 'pathname');
+      
+      s.setAttribute('label', 'utterances');
+      
+      s.setAttribute('theme', schema);
+      s.setAttribute('crossorigin', 'anonymous');
+      document.getElementById('comments').appendChild(s);
+    })
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+  
+  
+
+
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="leancloud-site-pv-container" style="display: none">
+        总访问量 
+        <span id="leancloud-site-pv"></span>
+         次
+      </span>
+    
+    
+      <span id="leancloud-site-uv-container" style="display: none">
+        总访客数 
+        <span id="leancloud-site-uv"></span>
+         人
+      </span>
+    
+    
+
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  
+      <script>
+        if (!window.MathJax) {
+          window.MathJax = {
+            tex    : {
+              inlineMath: { '[+]': [['$', '$']] }
+            },
+            loader : {
+              load: ['ui/lazy']
+            },
+            options: {
+              renderActions: {
+                insertedScript: [200, () => {
+                  document.querySelectorAll('mjx-container').forEach(node => {
+                    let target = node.parentNode;
+                    if (target.nodeName.toLowerCase() === 'li') {
+                      target.parentNode.classList.add('has-jax');
+                    }
+                  });
+                }, '', false]
+              }
+            }
+          };
+        } else {
+          MathJax.startup.document.state(0);
+          MathJax.texReset();
+          MathJax.typeset();
+          MathJax.typesetPromise();
+        }
+
+        Fluid.events.registerRefreshCallback(function() {
+          if ('MathJax' in window && MathJax.startup.document && typeof MathJax.startup.document.state === 'function') {
+            MathJax.startup.document.state(0);
+            MathJax.texReset();
+            MathJax.typeset();
+            MathJax.typesetPromise();
+          }
+        });
+      </script>
+    
+
+  <script  src="https://lib.baomitu.com/mathjax/3.2.2/es5/tex-mml-chtml.js" ></script>
+
+  <script defer src="/js/leancloud.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

@@ -16,17 +16,17 @@
   <meta name="author" content="张熙哲">
   <meta name="keywords" content="">
   
-    <meta name="description" content="论文标题为《Frangipani: A Scalable Distributed File System》，发表于1997年，这篇论文主要介绍了一个用于多人协作的分布式文件系统，介绍了一个通过读写锁解决缓存一致性的方案，虽然年代久远并且设计比较粗犷，但是还是有一些可借鉴之处。 概览Frangipani用于多个用户在同一个文件系统中协同工作，底层存储系统Petal是作者之前做的块存储系统，可以看作一">
+    <meta name="description" content="论文标题为《Frangipani: A Scalable Distributed File System》，发表于1997年，这篇论文主要介绍了一个用于多人协作的分布式文件系统，介绍了一个通过读写锁解决缓存一致性的方案，虽然年代久远并且设计比较粗犷，但是还是有一些可借鉴之处。 概览 Frangipani用于多个用户在同一个文件系统中协同工作，底层存储系统Petal是作者之前做的块存储系统，可以看作">
 <meta property="og:type" content="article">
 <meta property="og:title" content="分布式文件系统 Frangipani">
 <meta property="og:url" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/index.html">
 <meta property="og:site_name" content="Captain">
-<meta property="og:description" content="论文标题为《Frangipani: A Scalable Distributed File System》，发表于1997年，这篇论文主要介绍了一个用于多人协作的分布式文件系统，介绍了一个通过读写锁解决缓存一致性的方案，虽然年代久远并且设计比较粗犷，但是还是有一些可借鉴之处。 概览Frangipani用于多个用户在同一个文件系统中协同工作，底层存储系统Petal是作者之前做的块存储系统，可以看作一">
+<meta property="og:description" content="论文标题为《Frangipani: A Scalable Distributed File System》，发表于1997年，这篇论文主要介绍了一个用于多人协作的分布式文件系统，介绍了一个通过读写锁解决缓存一致性的方案，虽然年代久远并且设计比较粗犷，但是还是有一些可借鉴之处。 概览 Frangipani用于多个用户在同一个文件系统中协同工作，底层存储系统Petal是作者之前做的块存储系统，可以看作">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/%E5%9B%BE1.png">
 <meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/%E5%9B%BE2.png">
 <meta property="article:published_time" content="2023-10-15T09:52:11.000Z">
-<meta property="article:modified_time" content="2023-10-15T10:18:54.613Z">
+<meta property="article:modified_time" content="2023-10-15T11:59:01.369Z">
 <meta property="article:author" content="张熙哲">
 <meta property="article:tag" content="读论文">
 <meta property="article:tag" content="分布式文件系统">
@@ -322,7 +322,7 @@
         aria-expanded="true"
       >
         MIT6.824 分布式系统
-        <span class="list-group-count">(4)</span>
+        <span class="list-group-count">(16)</span>
         <i class="iconfont icon-arrowright"></i>
       </a>
       
@@ -336,10 +336,109 @@
     
       
       
+        <a href="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/" title="共识算法 Raft"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">共识算法 Raft</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/" title="分布式事务 FaRM"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式事务 FaRM</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-Spanner/" title="分布式事务 Spanner"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式事务 Spanner</span>
+        </a>
+      
+    
+      
+      
         <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/" title="分布式文件系统 Frangipani"
            class="list-group-item list-group-item-action
            active">
           <span class="category-post">分布式文件系统 Frangipani</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/" title="分布式文件系统 GFS"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式文件系统 GFS</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-MapReduce/" title="分布式计算 MapReduce"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式计算 MapReduce</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-Spark/" title="分布式计算 Spark"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式计算 Spark</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/" title="分支一致性 CT"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分支一致性 CT</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-SUNDR/" title="分支一致性 SUNDR"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分支一致性 SUNDR</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%8D%8F%E8%B0%83%E6%9C%8D%E5%8A%A1-Zookeeper/" title="协调服务 Zookeeper"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">协调服务 Zookeeper</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/" title="因果一致性 COPS"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">因果一致性 COPS</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%AD%98%E7%AE%97%E5%88%86%E7%A6%BB-Aurora/" title="存算分离 Aurora"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">存算分离 Aurora</span>
         </a>
       
     
@@ -370,6 +469,15 @@
         </a>
       
     
+      
+      
+        <a href="/2023/10/15/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84-Memcached/" title="高并发缓存架构 Memcached"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">高并发缓存架构 Memcached</span>
+        </a>
+      
+    
   </div>
 
         
@@ -394,8 +502,12 @@
               <div class="markdown-body">
                 
                 <p>论文标题为《Frangipani: A Scalable Distributed File System》，发表于1997年，这篇论文主要介绍了一个用于多人协作的分布式文件系统，介绍了一个通过读写锁解决缓存一致性的方案，虽然年代久远并且设计比较粗犷，但是还是有一些可借鉴之处。</p>
-<h2 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h2><p><img src="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/%E5%9B%BE1.png" srcset="/img/loading.gif" lazyload alt="图1" title="图1"><br>Frangipani用于多个用户在同一个文件系统中协同工作，底层存储系统Petal是作者之前做的块存储系统，可以看作一个存储空间很大的硬盘。所以可以将Frangipani看作是以Petal为存储底座的文件系统中间层，目标让多个用户使用这个文件系统时，仿佛就像同时在一台Linux机器的文件系统下协同工作。因为用户对于文件系统有读、写、修改元数据(改名、创建、删除文件等)操作，所以文件系统对多个用户的并发操作需要有协调作用，就有了一个分布式锁服务。<br>所以总体来看，整个架构中，多个客户端连接多个Frangipani服务器获取可以协同工作的分布式文件系统服务，多个Frangipani服务器连接到同一个Petal块存储服务共享同一个远程云硬盘，多个Frangipani服务器连接到同一个锁服务来完成并发协同。</p>
-<h2 id="硬盘布局"><a href="#硬盘布局" class="headerlink" title="硬盘布局"></a>硬盘布局</h2><p><img src="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/%E5%9B%BE2.png" srcset="/img/loading.gif" lazyload alt="图2" title="图2"><br>Petal提供的块存储服务可以呈现0～2^64的地址空间，Petal用64KB区分一个chunk，只会在真正存放数据的时候才在物理硬盘分配空间存这个chunk，所以是按需分配的，并且提供接口用于释放内存。<br>有了Petal提供的超大硬盘抽象，Frangipani对于硬盘的布局设计还是十分粗犷的，主要是六个部分：</p>
+<h2 id="概览"><a href="#概览" class="headerlink" title="概览"></a>概览</h2><p><img src="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/%E5%9B%BE1.png" srcset="/img/loading.gif" lazyload alt="图1" title="图1"></p>
+<p>Frangipani用于多个用户在同一个文件系统中协同工作，底层存储系统Petal是作者之前做的块存储系统，可以看作一个存储空间很大的硬盘。所以可以将Frangipani看作是以Petal为存储底座的文件系统中间层，目标让多个用户使用这个文件系统时，仿佛就像同时在一台Linux机器的文件系统下协同工作。因为用户对于文件系统有读、写、修改元数据(改名、创建、删除文件等)操作，所以文件系统对多个用户的并发操作需要有协调作用，就有了一个分布式锁服务。</p>
+<p>所以总体来看，整个架构中，多个客户端连接多个Frangipani服务器获取可以协同工作的分布式文件系统服务，多个Frangipani服务器连接到同一个Petal块存储服务共享同一个远程云硬盘，多个Frangipani服务器连接到同一个锁服务来完成并发协同。</p>
+<h2 id="硬盘布局"><a href="#硬盘布局" class="headerlink" title="硬盘布局"></a>硬盘布局</h2><p><img src="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/%E5%9B%BE2.png" srcset="/img/loading.gif" lazyload alt="图2" title="图2"></p>
+<p>Petal提供的块存储服务可以呈现0～2^64的地址空间，Petal用64KB区分一个chunk，只会在真正存放数据的时候才在物理硬盘分配空间存这个chunk，所以是按需分配的，并且提供接口用于释放内存。</p>
+<p>有了Petal提供的超大硬盘抽象，Frangipani对于硬盘的布局设计还是十分粗犷的，主要是六个部分：</p>
 <ol>
 <li>第一个部分存放了整个文件系统最基本的配置信息，虽然实际只用几KB，但是给它分配了1TB。</li>
 <li>第二个部分是256个日志区，平分了1TB的空间，每个Frangipani服务器会被分配一个日志区(所以也限制了Frangipani服务器的数量)，日志区是被Frangipani服务器用于预写变更，来完成修改元数据的原子性，其实就是WAL的作用，避免因为故障的发生导致部分写。</li>
@@ -403,7 +515,8 @@
 <li>第四个部分是Inode区，正如Linux的文件系统一样，每个文件都有自己的Inode，里面记录了自己的基本信息，比如文件名、最近访问时间等等，Frangipani给每个Inode分了512B的大小，整体上占1TB的空间，所以Frangipani的文件数有上限的。在Frangipani的设计中，Inode和所能管辖的最大存储范围和bitmap中的范围是一一对应的，所以猜测当一个文件大小超过它的Inode管辖范围时，就需要找拥有更大管辖范围的未使用Inode进行替换、复制。</li>
 <li>第五和第六部分则用于真正存储文件内容，不同的是，第五部分每个块大小为4KB，第六部分每个块大小为1TB。Frangipani分配块极其粗犷，文件小于等于64KB的部分在小块区，后续的部分就都放在大块区，同时限制了单个文件大小需要小于64KB+1TB。</li>
 </ol>
-<h2 id="缓存一致性"><a href="#缓存一致性" class="headerlink" title="缓存一致性"></a>缓存一致性</h2><p>每个Frangipani服务器很像是Petal上真正存储内容的缓存，客户端在Frangipani服务器上的读写操作都是发生在Frangipani服务器本地。所以Fangipani服务器自身有一部分Petal存储内容的缓存对外提供读写服务，读还好说，主要是写会修改数据，需要让Petal与其他Frangnipani服务器上的缓存感知到，所以就需要缓存一致性。为了达到缓存一致性，Frangipani设计了一个锁服务用于读写操作，读锁是共享锁，写锁是互斥锁。<br>Frangipani服务器需要遵守几个规则：</p>
+<h2 id="缓存一致性"><a href="#缓存一致性" class="headerlink" title="缓存一致性"></a>缓存一致性</h2><p>每个Frangipani服务器很像是Petal上真正存储内容的缓存，客户端在Frangipani服务器上的读写操作都是发生在Frangipani服务器本地。所以Fangipani服务器自身有一部分Petal存储内容的缓存对外提供读写服务，读还好说，主要是写会修改数据，需要让Petal与其他Frangnipani服务器上的缓存感知到，所以就需要缓存一致性。为了达到缓存一致性，Frangipani设计了一个锁服务用于读写操作，读锁是共享锁，写锁是互斥锁。</p>
+<p>Frangipani服务器需要遵守几个规则：</p>
 <ul>
 <li>如果没有拥有文件、目录的读锁或写锁，不能在本地缓存该文件、目录的数据(这里保证了无法读正在写的、过期的文件)</li>
 <li>如果要写数据，需要获得对应数据块的写锁，并且在完成整个写操作的时候，才释放写锁(保证了正在写的中间态对外不可见)</li>
@@ -418,7 +531,9 @@
 </ul>
 <p>因为读写锁的存在加上Frangipani本身的缓存规则，保证了当某个Frangipani服务器写某个文件的数据时，其他Frangipani服务器上对于该文件的缓存要清空，同时也将所有写操作完成了排序，达到了缓存一致性(其实单机多核缓存一致性是不是也是类似)。</p>
 <h2 id="原子性"><a href="#原子性" class="headerlink" title="原子性"></a>原子性</h2><p>对于创建文件、删除文件、修改文件名这种元数据操作，Frangipani需要保证操作的原子性，要么完全完成，要么完全失败，不存在写了一半就被外部看到中间结果的情况。像创建文件这种操作，需要先创建一个Inode，再在父目录中添加一个条目，分两步的写操作更像是一个事务。所以为了保证这样的事务的原子性，需要找锁服务获取所有需要的文件、目录的锁，然后再在其上进行修改操作。</p>
-<h2 id="故障恢复"><a href="#故障恢复" class="headerlink" title="故障恢复"></a>故障恢复</h2><p>在硬盘布局里面给每一个Frangipani服务器都留了预写日志(WAL)的空间，可以有效防止服务器崩溃，留下一次写操作的中间态的问题。出于性能与空间的考虑，Frangipani不用日志记录修改的文件内容数据(所以这一部分内容故障无法恢复)，只记录体积很小的元数据修改，并且Frangipani服务器在进行修改操作的时候，会先在本地完成，并将相应的日志项纪录下来，缓存在自己本地，每隔一段时间将缓存在本地的日志项写到Petal的对应日志区，只有已经写到日志区的日志项里描述的变更才可以后续将缓存中的修改块写到存储数据中。<br>预写日志的存在，保证了元数据的修改一旦已经写到日志中，不管后续真正修改的过程中Frangipani服务器是否宕机，其他接手的服务器一定可以根据预写日志的描述进行故障恢复。假设某个Frangipani服务器F1写完日志后还没来得及在磁盘中修改完成便宕机了，锁服务会因为租约到期或者revoke没有回复而判断出F1宕机，那么就会找另一个服务器F2去接手F1日志中已经预写但没有完成的日志项。这里需要注意的是，因为规定一个日志区只能被一个Frangipani服务器写，所以锁服务也会给每个日志区分配一个互斥锁，也同样是会租约超时的，这就保证了假如F1只是掉线没有宕机，也不会继续向日志区写东西了。F2接手后会把F1的日志项每个修改都同步到真正的数据中，完成后就可以让锁服务把F1之前申请的锁都释放掉了。<br>还有一个问题，根据日志做恢复的时候怎么判断是否是过时的日志？日志项里面会存单调递增的日志id标识日志的顺序性，同时日志项中会记录修改的块的新版本号，所以故障恢复时检查版本号是否过期就可以知道是否过时。</p>
+<h2 id="故障恢复"><a href="#故障恢复" class="headerlink" title="故障恢复"></a>故障恢复</h2><p>在硬盘布局里面给每一个Frangipani服务器都留了预写日志(WAL)的空间，可以有效防止服务器崩溃，留下一次写操作的中间态的问题。出于性能与空间的考虑，Frangipani不用日志记录修改的文件内容数据(所以这一部分内容故障无法恢复)，只记录体积很小的元数据修改，并且Frangipani服务器在进行修改操作的时候，会先在本地完成，并将相应的日志项纪录下来，缓存在自己本地，每隔一段时间将缓存在本地的日志项写到Petal的对应日志区，只有已经写到日志区的日志项里描述的变更才可以后续将缓存中的修改块写到存储数据中。</p>
+<p>预写日志的存在，保证了元数据的修改一旦已经写到日志中，不管后续真正修改的过程中Frangipani服务器是否宕机，其他接手的服务器一定可以根据预写日志的描述进行故障恢复。假设某个Frangipani服务器F1写完日志后还没来得及在磁盘中修改完成便宕机了，锁服务会因为租约到期或者revoke没有回复而判断出F1宕机，那么就会找另一个服务器F2去接手F1日志中已经预写但没有完成的日志项。这里需要注意的是，因为规定一个日志区只能被一个Frangipani服务器写，所以锁服务也会给每个日志区分配一个互斥锁，也同样是会租约超时的，这就保证了假如F1只是掉线没有宕机，也不会继续向日志区写东西了。F2接手后会把F1的日志项每个修改都同步到真正的数据中，完成后就可以让锁服务把F1之前申请的锁都释放掉了。</p>
+<p>还有一个问题，根据日志做恢复的时候怎么判断是否是过时的日志？日志项里面会存单调递增的日志id标识日志的顺序性，同时日志项中会记录修改的块的新版本号，所以故障恢复时检查版本号是否过期就可以知道是否过时。</p>
 
                 
               </div>

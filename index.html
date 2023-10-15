@@ -255,15 +255,15 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
-        <a href="/2023/10/15/%E6%B5%85%E6%9E%90MySQL-GTID/" target="_self">
-          浅析MySQL GTID
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/" target="_self">
+          分支一致性 CT
         </a>
       </h2>
 
       
-      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E6%B5%85%E6%9E%90MySQL-GTID/" target="_self">
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/" target="_self">
         <div>
-          一、总览在GTID(Global Transaction Identifier)诞生之前，MySQL主备同步是使用“文件名+位移”来确定binlog的复制位点的，在实际使用中很不便利。因此GTID应运而生，每个被写入binlog的事务都被分配了一个全局唯一的GTID，主库和备库通过计算已执行GTID的集合差集就可以确定复制位点了，大大简化确认位点的流程。GTID是与主库上提交的每个事务关联的唯一标
+          本文依据Transparent Logs for Skeptical Clients整理，主要介绍了Certificate Transparency如何以日志的形式公开管理证书，避免传统PKI体系下CA(Certificate Authority)被攻击导致证书不可信的问题 预备知识 数字证书 PKI体系 Merkle 树结构  PKI体系问题PKI体系下由CA给各个域名对应的服务器签发证书，客户
         </div>
       </a>
 
@@ -271,7 +271,7 @@
         
           <div class="post-meta mr-3">
             <i class="iconfont icon-date"></i>
-            <time datetime="2023-10-15 17:57" pubdate>
+            <time datetime="2023-10-15 22:27" pubdate>
               2023-10-15
             </time>
           </div>
@@ -287,22 +287,8 @@
     
       <span class="category-chain">
         
-  <a href="/categories/MySQL/" class="category-chain-item">MySQL</a>
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
   
-  
-    <span>></span>
-    
-  <a href="/categories/MySQL/Server/" class="category-chain-item">Server</a>
-  
-  
-    <span>></span>
-    
-  <a href="/categories/MySQL/Server/Replication-Layer/" class="category-chain-item">Replication Layer</a>
-  
-  
-
-  
-
   
 
       </span>
@@ -315,11 +301,387 @@
         
           <div class="post-meta">
             <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7/">#分支一致性</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-SUNDR/" target="_self">
+          分支一致性 SUNDR
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-SUNDR/" target="_self">
+        <div>
+          论文标题为《Secure Untrusted Data Repository (SUNDR)》，发表于2004年，这篇论文主要介绍了分布式文件系统SUNDR，考虑了服务器是恶意节点的情况，可以保证分支一致性。 分支一致性SUNDR实现了一个分布式文件系统，但是不像Frangipani那样主要关注如何组织存储，而是考虑了有恶意服务器的场景下如何安全的存储。在常规的分布式文件系统中，基本都默认存储服务
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2023-10-15 22:22" pubdate>
+              2023-10-15
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
+            
+              <a href="/tags/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7/">#分支一致性</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/" target="_self">
+          因果一致性 COPS
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/" target="_self">
+        <div>
+          论文标题为《Don’t Settle for Eventual: Scalable Causal Consistency for Wide-Area Storage with COPS》，发表于2011年，这篇论文主要介绍了一个满足因果一致性(Causal Consistency)并且支持冲突处理(Incorporating Convergent Conflict Handling)的存储系统CO
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2023-10-15 22:14" pubdate>
+              2023-10-15
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
+            
+              <a href="/tags/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7/">#因果一致性</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2023/10/15/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84-Memcached/" target="_self">
+          高并发缓存架构 Memcached
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84-Memcached/" target="_self">
+        <div>
+          论文标题为《Scaling Memcache at Facebook》，发表于2013年，这篇论文主要介绍了Facebook应对高并发的缓存架构Memcached，该缓存架构是经过现实的高并发场景验证过的，同时可以满足最终一致性和“写后读”一致性。 接口定义Memcache对外暴露三个简单的接口get(k)、set(k,v)、delete(k)，使用示例见下图，分别对应客户端(web server
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2023-10-15 22:09" pubdate>
+              2023-10-15
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
+            
+              <a href="/tags/%E7%BC%93%E5%AD%98%E4%B8%80%E8%87%B4%E6%80%A7/">#缓存一致性</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/" target="_self">
+          分布式事务 FaRM
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/" target="_self">
+        <div>
+          论文标题为《No compromises: distributed transactions with consistency, availability, and performance》，发表于2015年，这篇论文主要介绍了Microsoft的一个研究模型FaRM，利用两种特殊硬件，以及两阶段提交2PC和乐观并发控制OCC的结合来完成高性能的分布式事务，整个设计适用于单个数据中心，并发事务较少
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2023-10-15 21:59" pubdate>
+              2023-10-15
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
+            
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/">#分布式事务</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-Spanner/" target="_self">
+          分布式事务 Spanner
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-Spanner/" target="_self">
+        <div>
+          论文标题为《Spanner: Google’s Globally-Distributed Database》，发表于2013年，这篇论文主要介绍了Google的全球级别数据库Spanner，使用了原子钟和GPS实现高精度分布式时间系统，利用高精度的时间戳确定事务的先后顺序，并通过Paxos共识协议备份容错+2PC两阶段提交完成分布式事务。 整体架构Spanner的架构设计是覆盖全球级别的，每一个S
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2023-10-15 20:55" pubdate>
+              2023-10-15
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
+            
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/">#分布式事务</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
+        <a href="/2023/10/15/%E5%AD%98%E7%AE%97%E5%88%86%E7%A6%BB-Aurora/" target="_self">
+          存算分离 Aurora
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E5%AD%98%E7%AE%97%E5%88%86%E7%A6%BB-Aurora/" target="_self">
+        <div>
+          论文标题为《Amazon Aurora: Design Considerations for High Throughput Cloud-Native Relational Databases》，发表于2017年，这篇论文主要介绍了Amazon的AWS RDS Mysql应对云场景进行的数据库存算分离架构设计。 原始Mysql原始Mysql的主从备份流程如上图所示，数据库实例写远端硬盘EBS(1&
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2023-10-15 20:50" pubdate>
+              2023-10-15
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
             
               <a href="/tags/MySQL/">#MySQL</a>
             
-              <a href="/tags/%E8%AF%BB%E6%BA%90%E7%A0%81/">#读源码</a>
-            
           </div>
         
       </div>
@@ -332,15 +694,15 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
-        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/" target="_self">
-          分布式文件系统 Frangipani
+        <a href="/2023/10/15/%E5%8D%8F%E8%B0%83%E6%9C%8D%E5%8A%A1-Zookeeper/" target="_self">
+          协调服务 Zookeeper
         </a>
       </h2>
 
       
-      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/" target="_self">
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E5%8D%8F%E8%B0%83%E6%9C%8D%E5%8A%A1-Zookeeper/" target="_self">
         <div>
-          论文标题为《Frangipani: A Scalable Distributed File System》，发表于1997年，这篇论文主要介绍了一个用于多人协作的分布式文件系统，介绍了一个通过读写锁解决缓存一致性的方案，虽然年代久远并且设计比较粗犷，但是还是有一些可借鉴之处。 概览Frangipani用于多个用户在同一个文件系统中协同工作，底层存储系统Petal是作者之前做的块存储系统，可以看作一
+          论文标题为《ZooKeeper: Wait-free coordination for Internet-scale systems》，发表于2010年，这篇论文主要介绍了Yahoo实现的著名协调服务Zookeeper，可以方便地被用来实现主节点选举、配置管理、元信息管理、群组管理、简单状态同步、分布式锁等等。 总览Zookeeper的目标是帮助应用程序管理元数据，使用目录树结构(实际每个znod
         </div>
       </a>
 
@@ -348,7 +710,7 @@
         
           <div class="post-meta mr-3">
             <i class="iconfont icon-date"></i>
-            <time datetime="2023-10-15 17:52" pubdate>
+            <time datetime="2023-10-15 20:39" pubdate>
               2023-10-15
             </time>
           </div>
@@ -381,7 +743,7 @@
             
               <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
             
-              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/">#分布式文件系统</a>
+              <a href="/tags/%E5%8D%8F%E8%B0%83%E6%9C%8D%E5%8A%A1/">#协调服务</a>
             
           </div>
         
@@ -395,15 +757,15 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
-        <a href="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/" target="_self">
-          状态复制 VM-FT
+        <a href="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/" target="_self">
+          共识算法 Raft
         </a>
       </h2>
 
       
-      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/" target="_self">
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/" target="_self">
         <div>
-          论文标题为《The Design of a Practical System for Fault-Tolerant Virtual Machines》，发表于2010年，这篇论文主要介绍了VMware的虚拟机状态同步设计VM-FT，通过传递操作日志，达到机器级别的同步，并且具有外部一致性。 状态同步VM-FT要达到的同步是虚拟机级别的同步，虚拟机不需要感知内部的应用程序的状态，所要做的就是所有虚拟
+          论文标题为《In Search of an Understandable Consensus Algorithm》，发表于2014年，这篇论文主要介绍了共识算法Raft，易懂并且提供强一致性语义，已经被广泛使用在了工业界分布式系统中。 应用场景为什么需要共识算法？因为为了容错，往往将同样的内容存在多个备份上，但是各种硬件、软件故障通常另多个备份陷入不一致的状态，为了保证每个备份上存的内容一致，并且
         </div>
       </a>
 
@@ -411,7 +773,7 @@
         
           <div class="post-meta mr-3">
             <i class="iconfont icon-date"></i>
-            <time datetime="2023-10-15 17:42" pubdate>
+            <time datetime="2023-10-15 20:15" pubdate>
               2023-10-15
             </time>
           </div>
@@ -444,7 +806,7 @@
             
               <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
             
-              <a href="/tags/%E5%A4%8D%E5%88%B6/">#复制</a>
+              <a href="/tags/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95/">#共识算法</a>
             
           </div>
         
@@ -458,15 +820,15 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
-        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CRAQ/" target="_self">
-          链式复制 CRAQ
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-Spark/" target="_self">
+          分布式计算 Spark
         </a>
       </h2>
 
       
-      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CRAQ/" target="_self">
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-Spark/" target="_self">
         <div>
-          论文标题为《Object Storage on CRAQ: High-throughput chain replication for read-mostly workloads》，发表于2009年，这篇论文主要介绍了链式复制CR的升级版，可以让非尾节点响应读请求。 架构设计 存储服务对外暴露两个接口write、read，分别对应了写和读：  write写操作需要整条链的参与，客户端向首节点发写请
+          论文标题为《Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing》，发表于2012年，这篇论文主要介绍了现如今已经被广泛使用的批式计算框架Spark的最初设计，使用RDD的抽象将计算任务抽象成依赖图，利用内存驻留达到很好的性能，并且可以很好地支持循环计算任务。 RDD
         </div>
       </a>
 
@@ -474,7 +836,7 @@
         
           <div class="post-meta mr-3">
             <i class="iconfont icon-date"></i>
-            <time datetime="2023-10-15 17:36" pubdate>
+            <time datetime="2023-10-15 20:11" pubdate>
               2023-10-15
             </time>
           </div>
@@ -507,70 +869,7 @@
             
               <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
             
-              <a href="/tags/%E5%A4%8D%E5%88%B6/">#复制</a>
-            
-          </div>
-        
-      </div>
-    </article>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h2 class="index-header">
-        
-        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CR/" target="_self">
-          链式复制 CR
-        </a>
-      </h2>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CR/" target="_self">
-        <div>
-          论文标题为《Chain Replication for Supporting High Throughput and Availability》，发表于2004年，这篇论文主要介绍了常被用于主备复制的经典的链式复制CR。 架构设计 存储服务对外暴露两个接口query、update，分别对应了读和写：  query读操作仅发生在尾节点，客户端向尾节点发读请求，尾节点从自身存储找到对应内容后回复 up
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2023-10-15 17:20" pubdate>
-              2023-10-15
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
-  
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
-            
-              <a href="/tags/%E5%A4%8D%E5%88%B6/">#复制</a>
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97/">#分布式计算</a>
             
           </div>
         
@@ -579,6 +878,12 @@
   </div>
 
 
+
+  <nav aria-label="navigation">
+    <span class="pagination" id="pagination">
+      <span class="page-number current">1</span><a class="page-number" href="/page/2/#board">2</a><a class="extend next" rel="next" href="/page/2/#board"><i class="iconfont icon-arrowright"></i></a>
+    </span>
+  </nav>
 
 
 

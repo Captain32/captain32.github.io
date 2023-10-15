@@ -1,0 +1,953 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=light>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="张熙哲">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="论文标题为《The Google File System》，发表于2003年，这篇论文主要介绍了Google三驾马车之一GFS，GFS使用大量普通的机器构建出了高吞吐(大批量连续读写，而非低延迟的点查、随机写)、高可用(多备份容错)的分布式文件系统，具有划时代意义。 架构设计 GFS集群包含了一个负责存储元数据的master和很多个负责存储数据、真正读写数据的chunkserver。GFS主要应对">
+<meta property="og:type" content="article">
+<meta property="og:title" content="分布式文件系统 GFS">
+<meta property="og:url" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/index.html">
+<meta property="og:site_name" content="Captain">
+<meta property="og:description" content="论文标题为《The Google File System》，发表于2003年，这篇论文主要介绍了Google三驾马车之一GFS，GFS使用大量普通的机器构建出了高吞吐(大批量连续读写，而非低延迟的点查、随机写)、高可用(多备份容错)的分布式文件系统，具有划时代意义。 架构设计 GFS集群包含了一个负责存储元数据的master和很多个负责存储数据、真正读写数据的chunkserver。GFS主要应对">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/%E5%9B%BE1.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/%E5%9B%BE2.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/%E5%9B%BE3.jpeg">
+<meta property="article:published_time" content="2023-10-15T11:49:21.000Z">
+<meta property="article:modified_time" content="2023-10-15T11:56:56.883Z">
+<meta property="article:author" content="张熙哲">
+<meta property="article:tag" content="读论文">
+<meta property="article:tag" content="分布式文件系统">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://captain32.github.io/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/%E5%9B%BE1.png">
+  
+  
+  
+  <title>分布式文件系统 GFS - Captain</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"captain32.github.io","root":"/","version":"1.9.5-a","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":["home"]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":6},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"0DHAyLeOfwqNRanYXNuL4Mhr-gzGzoHsz","app_key":"lq0Ly742okJc5yeBJcZaiHSF","server_url":"https://0dhayleo.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+    <!-- Google tag (gtag.js) -->
+    <script async>
+      if (!Fluid.ctx.dnt) {
+        Fluid.utils.createScript("https://www.googletagmanager.com/gtag/js?id=", function() {
+          window.dataLayer = window.dataLayer || [];
+          function gtag() {
+            dataLayer.push(arguments);
+          }
+          gtag('js', new Date());
+          gtag('config', '');
+        });
+      }
+    </script>
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 60vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Captain&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle">分布式文件系统 GFS</span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-10-15 19:49" pubdate>
+          2023年10月15日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          5.1k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          43 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="leancloud-page-views"></span> 次
+        </span>
+        
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar category-bar" style="margin-right: -1rem">
+    
+
+
+
+
+
+<div class="category-list">
+  
+  
+    
+    
+    
+    <div class="category row nomargin-x">
+      <a class="category-item 
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="MIT6.824 分布式系统"
+        id="heading-aa244c0b2998c7a31646f84d6cc293ba" role="tab" data-toggle="collapse" href="#collapse-aa244c0b2998c7a31646f84d6cc293ba"
+        aria-expanded="true"
+      >
+        MIT6.824 分布式系统
+        <span class="list-group-count">(16)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse show" id="collapse-aa244c0b2998c7a31646f84d6cc293ba"
+           role="tabpanel" aria-labelledby="heading-aa244c0b2998c7a31646f84d6cc293ba">
+        
+        
+          
+  <div class="category-post-list">
+    
+    
+      
+      
+        <a href="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/" title="共识算法 Raft"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">共识算法 Raft</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/" title="分布式事务 FaRM"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式事务 FaRM</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-Spanner/" title="分布式事务 Spanner"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式事务 Spanner</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/" title="分布式文件系统 Frangipani"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式文件系统 Frangipani</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/" title="分布式文件系统 GFS"
+           class="list-group-item list-group-item-action
+           active">
+          <span class="category-post">分布式文件系统 GFS</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-MapReduce/" title="分布式计算 MapReduce"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式计算 MapReduce</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-Spark/" title="分布式计算 Spark"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式计算 Spark</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/" title="分支一致性 CT"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分支一致性 CT</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-SUNDR/" title="分支一致性 SUNDR"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分支一致性 SUNDR</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%8D%8F%E8%B0%83%E6%9C%8D%E5%8A%A1-Zookeeper/" title="协调服务 Zookeeper"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">协调服务 Zookeeper</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/" title="因果一致性 COPS"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">因果一致性 COPS</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%AD%98%E7%AE%97%E5%88%86%E7%A6%BB-Aurora/" title="存算分离 Aurora"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">存算分离 Aurora</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/" title="状态复制 VM-FT"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">状态复制 VM-FT</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CR/" title="链式复制 CR"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">链式复制 CR</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CRAQ/" title="链式复制 CRAQ"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">链式复制 CRAQ</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84-Memcached/" title="高并发缓存架构 Memcached"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">高并发缓存架构 Memcached</span>
+        </a>
+      
+    
+  </div>
+
+        
+      </div>
+    </div>
+  
+</div>
+
+
+  </aside>
+
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">分布式文件系统 GFS</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <p>论文标题为《The Google File System》，发表于2003年，这篇论文主要介绍了Google三驾马车之一GFS，GFS使用大量普通的机器构建出了高吞吐(大批量连续读写，而非低延迟的点查、随机写)、高可用(多备份容错)的分布式文件系统，具有划时代意义。</p>
+<h2 id="架构设计"><a href="#架构设计" class="headerlink" title="架构设计"></a>架构设计</h2><p><img src="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/%E5%9B%BE1.png" srcset="/img/loading.gif" lazyload alt="图1" title="图1"></p>
+<p>GFS集群包含了一个负责存储元数据的master和很多个负责存储数据、真正读写数据的chunkserver。GFS主要应对的是较大的文件(100MB以上，数GB也很常见)，为了方便存储大文件，GFS将文件拆分成多个64MB的chunk，每个文件都是由一个或多个chunk组成，每个chunk是基本的存储、容错单元，被存在多个(默认3个，分布在不同机架)chunkserver上。虽然呈现的是文件系统，但是client真正读写的是chunk，GFS会给每个chunk赋予一个64bit全局唯一的chunk handle，可以唯一标识某个chunk。64MB的大小(相比单机4KB硬盘页)的chunk虽然会更容易产生碎片，但是可以使得文件包含的chunk数有效减少，master需要维护的状态将变得更小，可以管理更多、更大的文件，对于client来说也可以更少地切换与不同chunkserver之间的TCP连接。</p>
+<p>master存了整个GFS集群的元信息，包括了目录结构、权限控制、文件到包含的chunk的映射、chunk所在位置(机器)等等。master不处理真正的数据读写，在client读写时主要起到路由的作用，client想要读写某个文件的某个chunk时，先联系master得到chunk handle和chunk所在的chunkserver，随后使用chunk handle和对应的chunkserver交互获得真正的数据，文件到chunk再到chunkserver的映射关系client会自己缓存着避免频繁找master查相同的映射信息。</p>
+<p>为了性能考虑master将元信息直接存在内存之中，所有关键元信息的修改都需要预写到操作日志(持久化存储)中，这样可以保证故障后可以恢复。为了方便恢复，master会定期给内部状态做快照(不影响master处理新请求)存到硬盘中，但是需要注意的是“chunk所在位置”这部分信息不会持久化，这一部分信息是master启动的时候跟各个chunkserver心跳沟通的时候得到的，相当于把这部分信息持久化的工作分摊给了各个chunkserver。</p>
+<p>master是GFS中的大脑，如果发生了单点故障，并不会影响已有的数据读写，但会影响即将发生的数据读写以及元信息的修改。GFS的设计中有影子master，实时同步着master的状态，有一定延迟(1s左右)，但是在master宕机后恢复期间，影子master会承担起master路由读写请求的责任，不能够进行元信息修改。</p>
+<h2 id="一致性保证"><a href="#一致性保证" class="headerlink" title="一致性保证"></a>一致性保证</h2><h3 id="写请求处理"><a href="#写请求处理" class="headerlink" title="写请求处理"></a>写请求处理</h3><p>GFS支持Random写和Append写两种写操作，GFS应对的主要是大量Append写，虽然支持Random写，但是性能会比较差。GFS保证在单个chunk上的多个修改操作需要在不同副本chunkserver上按照相同顺序执行，保证单chunk上修改操作的顺序性。GFS通过给每个chunk选一个primary chunkserver来达成顺序性的需求，master负责给primary chunkserver发租约(大概60s)，在租约有效期间，primary chunkserver负责主导chunk的写操作，可以通过和master的心跳信息续约。所有跨chunk的写请求会被打散成只写单chunk的多个写请求，写单个chunk的写请求处理流程如下所示：</p>
+<p><img src="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/%E5%9B%BE2.png" srcset="/img/loading.gif" lazyload alt="图2" title="图2"></p>
+<ol>
+<li>Client首先找master要chunk存在哪些chunkserver上，并且要知道primary chunkserver是谁(没有的话master会当即选一个)</li>
+<li>master返回给Client它要的chunk位置映射信息，以及primary chunkserver</li>
+<li>Client将要写的内容就近发送给某个chunkserver(并不一定是primary chunkserver)，然后该chunkserver再链式转发给所有chunkserver，chunkserver拿到数据后在LRU缓存中暂存起来，直到数据被使用或者过期被替换</li>
+<li>已经预先传完数据后，Client向primary chunkserver要求开始写操作，并且指明刚才传递的数据。primary chunkserver会依据请求到来的先后给操作排序，并将写操作apply到自己的存储中</li>
+<li>primary chunkserver将所有排好序的请求按序转发给其他chunkserver</li>
+<li>其他chunkserver按照primary chunkserver排好的顺序apply各个写操作</li>
+<li>primary chunkserver需要根据所有chunkserver是否写成功将结果返回给Client。首先如果primary chunkserver写失败那么这个写请求就不会被分配序列号，不会被转发给其他chunkserver，写请求直接是失败的；假如任意一个chunkserver写失败，但是其他的chunkserver成功了，那么写请求也被认为是失败的，并且这使得所有副本处于不一致的状态。对于失败的写请求，Client会不断重试3-7步来解决副本不一致的问题。</li>
+</ol>
+<p>对于chunkserver因为宕机或者断连错过很多写请求导致chunk存的是过时数据的问题，master为每个chunk赋予了版本号，版本号会在赋予primary chunkserver租约的时候增进，并且通知到所有chunkserver，master和chunkserver都需要持久化这个版本号。当存有过期数据的chunkserver后续重回集群时，master会检查它心跳信息中包含的chunk版本号是否足够新，如果是旧的就认为这个副本上的chunk已过期，就把其上的chunk垃圾回收掉。master在给Client路由读请求的时候只会给版本号达到最新的chunkserver，落伍的不会返回给Client，并且在master看来过期的chunk就已经是等待被回收的垃圾，它所在的chunkserver也不被认为是该chunk的一个备份机器了。</p>
+<h3 id="至少一次Append写"><a href="#至少一次Append写" class="headerlink" title="至少一次Append写"></a>至少一次Append写</h3><p>对于很多应用，Append写很关键，比如对于消息队列而言，多个写者Append写同一个文件，读者读该文件就可以模拟消息队列。除了按照图2的流程外，GFS对于Append写还有一些特殊的设定，以应对多个写者并发Append写的场景。</p>
+<p>GFS规定Append写的数据大小必须小于chunk size(默认64MB)的1&#x2F;4，这个要求是因为单个Append写不能跨chunk，当primary chunkserver发现此次Append写会跨chunk的时候，就会将写操作变成把当前chunk的剩余部分都用padding填充，然后告知Client去新创建的下一个chunk进行Append写。</p>
+<p>与Random写不同，Append写不需要Client指定写的offset，只用给数据就可以，primary chunkserver会根据自己chunk的当前结束位置决定Append写的offset，并同步给其他chunkserver。如果遇到了多个副本局部Append写失败的问题，依靠Client不断重试来保证最终的成功，重试会使得有的副本重复写了多次同样的数据，有的副本则只写了一次，GFS并不在意副本之间bit级别的一致，在意的是最终成功后，多个副本在成功的那次offset都能读到Append写入的数据，所以是保证至少一次Append写(例如下图就是三次重试，最终一次成功后三个副本的存储内容)，至于某些副本上重复内容的问题，就需要读者来进行幂等。需要注意的是哪怕多个Append写期间切换了primary chunkserver并且此chunkserver上chunk结束位置比较早，也不会因为后续的Append写令之前成功的Append写被覆盖，因为成功的Append写一定是让所有副本都在相同offset写成功，某个副本结束位置最早也就是最后一次成功Append写的结束位置，这保证了成功Append写一定不会被覆盖，至于失败的Append写被覆盖了也无所谓。</p>
+<p><img src="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/%E5%9B%BE3.jpeg" srcset="/img/loading.gif" lazyload alt="图3" title="图3"></p>
+<h3 id="数据正确性检查"><a href="#数据正确性检查" class="headerlink" title="数据正确性检查"></a>数据正确性检查</h3><p>正如前面介绍，GFS不保证各个副本上bit级别的一致，有时候硬件错误会导致数据损坏，因为每个副本上存的内容很可能不一样(如图3)，所以需要每个chunkserver负责检查自己的chunk的正确性。每个chunk被切分成64KB的块，每个块都有32bit的校验和，每个块的校验和被作为元信息存在chunkserver的内存中，并且使用日志进行持久化。在响应读请求的时候，chunkserver需要根据校验和检查数据是否正确，只有正确的数据才返回给Client，如果不正确就上报给master等待这个chunk被删除。</p>
+<p>在进行Append写时，第一个块通常并不是一个崭新的块，而是写了一部分的块，chunkserver可以直接基于这个块上已有的校验和以及新写的内容增量计算出新的校验和，可以这么做的原因是Append写不会覆盖原有数据，原有数据如果损坏了，新的校验和依然可以用于检查原有数据是否正确。Append写的后续块，则需要根据每个块完整计算出校验和。</p>
+<p>在进行Random写时，完整覆盖的块可以直接重新计算出新的校验和，没有完整覆盖的块则需要先校验原块是否正确，验证正确后才可以修改然后整体计算新的校验和。非完整覆盖块之所以要先检查是为了防止掩盖原块已经损坏的数据，假设原块已经损坏，未经检查就进行修改并计算新的校验和，那么原本损坏的内容就这样瞒天过海了。</p>
+<p>chunkserver会有后台任务扫描检查各个chunk的正确性，不正确就会上报给master等待被删除。</p>
+<h2 id="Master职责"><a href="#Master职责" class="headerlink" title="Master职责"></a>Master职责</h2><h3 id="元信息修改"><a href="#元信息修改" class="headerlink" title="元信息修改"></a>元信息修改</h3><p>GFS虽然呈现出目录树结构，但是实际是使用全路径来组织文件。元信息的修改是对正确性要求很高但是频率不高的操作，所以master不光需要预写日志来保障故障后恢复，还需要确保元信息修改是互斥、顺序执行的。master给每个文件(目录)都赋予了读写锁，读锁共享，写锁互斥，当一个修改操作要创建“&#x2F;A&#x2F;B&#x2F;C”时，需要给“&#x2F;A”和“&#x2F;A&#x2F;B”加读锁，给“&#x2F;A&#x2F;B&#x2F;C”加写锁，保证整个修改过程没有冲突发生。</p>
+<h3 id="chunk创建、复制、负载均衡"><a href="#chunk创建、复制、负载均衡" class="headerlink" title="chunk创建、复制、负载均衡"></a>chunk创建、复制、负载均衡</h3><p>master创建新chunk时需要选好存chunk的若干个chunkserver。在有chunkserver宕机后，master需要给其上的chunk找替代chunkserver，来保证容错要求，这时会根据一些条件为其上每个chunk选择新的chunkserver，并找到足够新的chunkserver将其上的chunk复制到替代者上。master还需要负责负载均衡，将负载过高的chunkserver上的chunk匀一些给其他负载较低的chunkserver。</p>
+<h3 id="快照"><a href="#快照" class="headerlink" title="快照"></a>快照</h3><p>GFS支持对文件系统、目录进行快照，使用了Copy-on-Write技术，整个快照的过程是懒复制的。首先，master会召回所有涉及到的chunk的租约，避免master不知情的写请求修改了当前快照要求的数据。之后master会在目录树中添加所有快照文件的元信息，元信息中指向的chunk和真正文件指向的chunk一样(有些像软链接，引用计数变成了2)。之后再有某个需要快照的chunk上的写请求，master会注意到引用计数为2，就会新复制出来一个新的chunk，然后把真正文件指向的chunk改为新建的这个chunk，之后就如正常写操作一样，赋予primary chunkserver租约后，client就在新的chunk上进行写操作，老的chunk就留给了快照。</p>
+<h3 id="垃圾回收"><a href="#垃圾回收" class="headerlink" title="垃圾回收"></a>垃圾回收</h3><p>GFS中文件的删除并不是立即发生的，而是先进行一个重命名操作，相当于把文件移到回收站，这期间还可以找回。master中有一个后台任务定期扫描回收站，删除在回收站中呆了超过3天文件的元信息。同时，后台任务还会扫描所有chunk的引用计数，引用计数为0的chunk的元信息也会被删除。当master上不存在某个chunk的元信息后，假如收到了某个chunkserver的心跳信息说自己拥有这个chunk，master会令其删除，至此便完成了数据的真正删除。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/" class="print-no-link">#读论文</a>
+      
+        <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/" class="print-no-link">#分布式文件系统</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>分布式文件系统 GFS</div>
+      <div>http://captain32.github.io/2023/10/15/分布式文件系统-GFS/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>张熙哲</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年10月15日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-MapReduce/" title="分布式计算 MapReduce">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">分布式计算 MapReduce</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/10/15/%E6%B5%85%E6%9E%90MySQL-GTID/" title="浅析MySQL GTID">
+                        <span class="hidden-mobile">浅析MySQL GTID</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#comments', function() {
+      var light = 'github-light';
+      var dark = 'github-dark';
+      var schema = document.documentElement.getAttribute('data-user-color-scheme');
+      if (schema === 'dark') {
+        schema = dark;
+      } else {
+        schema = light;
+      }
+      window.UtterancesThemeLight = light;
+      window.UtterancesThemeDark = dark;
+      var s = document.createElement('script');
+      s.setAttribute('src', 'https://utteranc.es/client.js');
+      s.setAttribute('repo', 'Captain32/Utterances-comment');
+      s.setAttribute('issue-term', 'pathname');
+      
+      s.setAttribute('label', 'utterances');
+      
+      s.setAttribute('theme', schema);
+      s.setAttribute('crossorigin', 'anonymous');
+      document.getElementById('comments').appendChild(s);
+    })
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="leancloud-site-pv-container" style="display: none">
+        总访问量 
+        <span id="leancloud-site-pv"></span>
+         次
+      </span>
+    
+    
+      <span id="leancloud-site-uv-container" style="display: none">
+        总访客数 
+        <span id="leancloud-site-uv"></span>
+         人
+      </span>
+    
+    
+
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script defer src="/js/leancloud.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

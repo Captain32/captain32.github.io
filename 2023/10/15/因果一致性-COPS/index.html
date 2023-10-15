@@ -1,0 +1,1029 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=light>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="张熙哲">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="论文标题为《Don’t Settle for Eventual: Scalable Causal Consistency for Wide-Area Storage with COPS》，发表于2011年，这篇论文主要介绍了一个满足因果一致性(Causal Consistency)并且支持冲突处理(Incorporating Convergent Conflict Handling)的存储系统CO">
+<meta property="og:type" content="article">
+<meta property="og:title" content="因果一致性 COPS">
+<meta property="og:url" content="http://captain32.github.io/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/index.html">
+<meta property="og:site_name" content="Captain">
+<meta property="og:description" content="论文标题为《Don’t Settle for Eventual: Scalable Causal Consistency for Wide-Area Storage with COPS》，发表于2011年，这篇论文主要介绍了一个满足因果一致性(Causal Consistency)并且支持冲突处理(Incorporating Convergent Conflict Handling)的存储系统CO">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/%E5%9B%BE1.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/%E5%9B%BE2.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/%E5%9B%BE3.png">
+<meta property="article:published_time" content="2023-10-15T14:14:18.000Z">
+<meta property="article:modified_time" content="2023-10-15T14:20:58.347Z">
+<meta property="article:author" content="张熙哲">
+<meta property="article:tag" content="读论文">
+<meta property="article:tag" content="因果一致性">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://captain32.github.io/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/%E5%9B%BE1.png">
+  
+  
+  
+  <title>因果一致性 COPS - Captain</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"captain32.github.io","root":"/","version":"1.9.5-a","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":["home"]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":6},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"0DHAyLeOfwqNRanYXNuL4Mhr-gzGzoHsz","app_key":"lq0Ly742okJc5yeBJcZaiHSF","server_url":"https://0dhayleo.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+    <!-- Google tag (gtag.js) -->
+    <script async>
+      if (!Fluid.ctx.dnt) {
+        Fluid.utils.createScript("https://www.googletagmanager.com/gtag/js?id=", function() {
+          window.dataLayer = window.dataLayer || [];
+          function gtag() {
+            dataLayer.push(arguments);
+          }
+          gtag('js', new Date());
+          gtag('config', '');
+        });
+      }
+    </script>
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 60vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Captain&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle">因果一致性 COPS</span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-10-15 22:14" pubdate>
+          2023年10月15日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          59 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="leancloud-page-views"></span> 次
+        </span>
+        
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar category-bar" style="margin-right: -1rem">
+    
+
+
+
+
+
+<div class="category-list">
+  
+  
+    
+    
+    
+    <div class="category row nomargin-x">
+      <a class="category-item 
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="MIT6.824 分布式系统"
+        id="heading-aa244c0b2998c7a31646f84d6cc293ba" role="tab" data-toggle="collapse" href="#collapse-aa244c0b2998c7a31646f84d6cc293ba"
+        aria-expanded="true"
+      >
+        MIT6.824 分布式系统
+        <span class="list-group-count">(16)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse show" id="collapse-aa244c0b2998c7a31646f84d6cc293ba"
+           role="tabpanel" aria-labelledby="heading-aa244c0b2998c7a31646f84d6cc293ba">
+        
+        
+          
+  <div class="category-post-list">
+    
+    
+      
+      
+        <a href="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/" title="共识算法 Raft"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">共识算法 Raft</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/" title="分布式事务 FaRM"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式事务 FaRM</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-Spanner/" title="分布式事务 Spanner"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式事务 Spanner</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/" title="分布式文件系统 Frangipani"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式文件系统 Frangipani</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/" title="分布式文件系统 GFS"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式文件系统 GFS</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-MapReduce/" title="分布式计算 MapReduce"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式计算 MapReduce</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-Spark/" title="分布式计算 Spark"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式计算 Spark</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/" title="分支一致性 CT"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分支一致性 CT</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-SUNDR/" title="分支一致性 SUNDR"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分支一致性 SUNDR</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%8D%8F%E8%B0%83%E6%9C%8D%E5%8A%A1-Zookeeper/" title="协调服务 Zookeeper"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">协调服务 Zookeeper</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/" title="因果一致性 COPS"
+           class="list-group-item list-group-item-action
+           active">
+          <span class="category-post">因果一致性 COPS</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%AD%98%E7%AE%97%E5%88%86%E7%A6%BB-Aurora/" title="存算分离 Aurora"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">存算分离 Aurora</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/" title="状态复制 VM-FT"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">状态复制 VM-FT</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CR/" title="链式复制 CR"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">链式复制 CR</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%93%BE%E5%BC%8F%E5%A4%8D%E5%88%B6-CRAQ/" title="链式复制 CRAQ"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">链式复制 CRAQ</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84-Memcached/" title="高并发缓存架构 Memcached"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">高并发缓存架构 Memcached</span>
+        </a>
+      
+    
+  </div>
+
+        
+      </div>
+    </div>
+  
+</div>
+
+
+  </aside>
+
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">因果一致性 COPS</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <p>论文标题为《Don’t Settle for Eventual: Scalable Causal Consistency for Wide-Area Storage with COPS》，发表于2011年，这篇论文主要介绍了一个满足因果一致性(Causal Consistency)并且支持冲突处理(Incorporating Convergent Conflict Handling)的存储系统COPS，以及支持读事务的升级版本COPS-GT。因果一致性是一个有趣的研究方向，但很少被真正应用到现实系统中(比如嵌套的因果关系如同一颗树，根结点的阻塞导致所有子树等待)。</p>
+<h2 id="Causal-一致性"><a href="#Causal-一致性" class="headerlink" title="Causal+一致性"></a>Causal+一致性</h2><p>论文首先定义了Causal+一致性，即<strong>满足因果一致性并且支持冲突处理</strong>(例如最后写胜利)。<br>首先定义一下<strong>因果关系</strong>，整个系统被抽象为支持put和get两种操作，那么因果关系可以被归类为以下三种情况：</p>
+<ul>
+<li>同一个线程里假如操作a发生在操作b之前，那么有$a\rightarrow b$，即a为因，b为果。</li>
+<li>如果一个get操作b读到了之前某个put操作a写入的值，同样有$a\rightarrow b$。</li>
+<li>因果关系具有传递性，若$a\rightarrow b$且$b\rightarrow c$，那么有$a\rightarrow c$。</li>
+</ul>
+<p><img src="/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/%E5%9B%BE1.png" srcset="/img/loading.gif" lazyload alt="图1" title="图1"><br>上图反映了三种情况对应的因果关系。因果关系其实是为了符合使用者的直觉，符合因果一致性其实是为了解决如下这样的问题。</p>
+<blockquote>
+<p>Client 1：</p>
+<ol>
+<li>put(photo) 上传了一张照片</li>
+<li>put(album) 相册中添加了指向该照片的引用</li>
+</ol>
+<p>Client 2:</p>
+<ol>
+<li>get(album) 读取相册列表</li>
+<li>get(photo) 读取引用指向的照片</li>
+</ol>
+<p>符合直觉的应该是Client 2如果成功读取了新的相册列表，那么一定可以读取到新上传的照片，所以就要求了Client 1两个put操作的顺序，第1步一定要发生在第2步之前。</p>
+</blockquote>
+<p>正如前文所述，Causal+一致性由因果一致性和冲突处理两部分组成，如下：</p>
+<ul>
+<li>因果一致性要求任何get操作读到的值<strong>遵循因果关系所定义的顺序</strong>，例如上图中put(x,4)必须是在put(y,2)之后发生，不存在client读到x&#x3D;4后又读到x&#x3D;1的情况。但因果关系其实只进行了<strong>局部排序</strong>，例如上图中put(x,3)和put(x,4)之间并不存在严格的先后关系，这就说明这两个操作是<strong>并发</strong>的，也就是<strong>冲突</strong>的，它们的先后关系是不明确的。</li>
+<li>由于因果关系的局部排序带来的操作<strong>冲突</strong>，为了能给冲突操作定义出**全局排序(最终一致)<strong>，所以就有了Causal+一致性的第二部分——冲突收敛处理，最常见的冲突处理就是最后写者胜(虽然面对累加这种情况不适用)。COPS采用了Lamport时间戳解决这个问题，因为不同机器时间戳存在误差的问题，不能绝对相信机器生成的时间戳，所以使用Lamport时间戳，该时间戳由两部分组成</strong>&lt;逻辑时间戳，机器id&gt;<strong>，每个机器为新操作生成的逻辑时间戳是</strong>max(本机物理时间戳，所见过操作逻辑时间戳最大值+1)**，这就使得冲突操作根据Lamport时间戳可以分出先后，并且物理时间走的慢的机器可以通过见到的最大逻辑时间戳跟上时间走的快的机器。</li>
+</ul>
+<p>至此，论文标题中的<strong>可扩展性</strong>也就浮现出来了，该设计并不像很多一致性设计一样，需要一个包含所有分片(shard)的全局log日志(扩展性的瓶颈)给出所有操作的全局顺序，而是通过因果关系提供的局部排序外加冲突处理提供的补足排序，使得所有操作达到全局排序的目标。由于没有log日志和去中心化的设计，使得系统具有可扩展性，不需要发送、交换日志，也不需要一个中心节点调控。</p>
+<h2 id="系统设计"><a href="#系统设计" class="headerlink" title="系统设计"></a>系统设计</h2><p><img src="/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/%E5%9B%BE2.png" srcset="/img/loading.gif" lazyload alt="图2" title="图2"><br>COPS给客户端提供的接口就是简单的put和get，加强版COPS-GT则额外提供了支持多key读事务的get_trans。COPS的设计是为了多个数据中心之间的一致性，每个<strong>client在本地的数据中心进行读写</strong>，本地数据中心完成写操作后，会将写请求放在Repl Queue，有额外的后台线程异步地将请求发给其他数据中心进行同步。在一个数据中心内，每个值也会在多台机器上进行复制容错，预期网速很快，采用的是链式复制(Chain Replication)，但是COPS关心的是<strong>数据中心之间的复制</strong>，要确保符合Causal+一致性。</p>
+<p>在存储节点中(上图中央蓝色部分)，COPS记录的每一个单元是&lt;key,value,version&gt;，key和value是KV存储的基本单元，version则是put该&lt;key,value&gt;时存储节点赋予它的版本号也就是之前介绍的Lamport时间戳。由于COPS-GT要支持更为复杂的读事务，所以在存储时要记录下多个版本，并且记录每个版本的所有依赖(因果关系所定义的)，因此COPS-GT为每个key记录的是一系列的&lt;value,version,deps&gt;。</p>
+<h3 id="接口说明"><a href="#接口说明" class="headerlink" title="接口说明"></a>接口说明</h3><p>Client是客户端，Client Library是运行在客户端的基础库，用于和存储节点进行交互(put_after、get_by_vers)以及管理上下文状态(Client Context)，Client Library暴露给用户的接口就是简单的put、get、get_trans，分别用于写单个&lt;key,value&gt;、读单个key、事务读多个key。而这些用户操作在Client Library这里会进行一些丰富，以put_after和get_by_vers两个接口与存储节点进行交互，下面简单介绍一下put_after、get_by_vers和dep_check三个API：</p>
+<ul>
+<li>put_after被用于Client Library向本地数据中心写入&lt;key,value&gt;，同时被用于数据中心之间的同步。put_after的参数和返回形式为<code>⟨bool,vers⟩ ← put_after (key, val, [deps], nearest, vers=null)</code>，参数中的deps被COPS-GT用于传依赖(因果)关系，nearest被COPS用于传依赖关系，vers在数据中心之间同步时会被设置为分配的版本；返回中的vers则是客户端提交put操作后存储节点给该操作分配的版本号。</li>
+<li>get_by_vers被用于读指定版本的&lt;key,value&gt;，其参数和返回形式为<code>⟨value, version, [deps]⟩ ← get_by_vers (key, version=LATEST)</code>，参数中的version字段只有在COPS-GT的读事务中被使用，其他情况默认是读最新版本；返回中的deps也是只有在COPS-GT中被使用，用于客户端上下文状态的维护。当读取指定version数据无法被满足时，将会阻塞等待直到数据版本得到满足。</li>
+<li>dep_check被用于检查依赖关系是否满足，当进行put_after时，每个&lt;key,value&gt;被commit前都需要检查其deps(或者nearest)是否已经满足，这里就用到了dep_check，本质就是从本数据中心把该版本&lt;key,value&gt;每一个依赖的key(可能因为在不同分片存在不同的存储节点)读指定版本，看是否满足读结果版本&gt;&#x3D;指定的version，当所有检查完成，才可以进行一个新的&lt;key,value&gt;的commit。</li>
+</ul>
+<h3 id="客户端状态管理"><a href="#客户端状态管理" class="headerlink" title="客户端状态管理"></a>客户端状态管理</h3><p>从上文介绍因果关系可知，从一个线程中操作的先后关系会导致因果关系，所以在客户端需要维护一个上下文状态(Client Context)用于管理单线程中产生的因果关系。这一部分工作由Client Library完成，其中COPS和COPS-GT所需要管理的状态不太一样。</p>
+<ul>
+<li>先介绍COPS-GT，Client Context就是一张表，每个元素是一个&lt;key,version,deps&gt;元组，每当使用get读到一个&lt;key,value&gt;对，就向表中添加一个对应的元组，其中version、deps信息都是get_by_vers接口顺带返回的。当要进行put操作时，为了让存储节点知道该&lt;key,value&gt;依赖哪些前置的因，就需要将Client Context表中每一个key对应的最新版本以及其依赖构成的全集都加入到本次put的deps中，作为一个参数调用put_after接口传给存储节点，用于后续dep_check接口判断依赖性；随着put_after成功完成，会返回存储节点给本次put赋予的version，同样需要把&lt;key,version,deps&gt;加入到Client Context表中。总结一下就是，<strong>所有的读写操作都会以&lt;key,version,deps&gt;的形式存放在Client Context中</strong>，带来的无限增长的空间问题会在后文垃圾回收阶段给出解决方案。</li>
+<li>COPS由于不需要支持读事务，所需维护的上下文状态就少很多，同样也是维护一张表，每个元素是一个&lt;key,version&gt;对，当get获得&lt;key,value&gt;时，会将相应的&lt;key,version&gt;加入表中；当进行put操作时，同样需要把Client Context中记录的所有&lt;key,version&gt;作为本次put的依赖以put_after借口的nearest参数传给存储节点，并在put_after返回得到版本后，把Client Context清空，存入返回的&lt;key,version&gt;。</li>
+</ul>
+<p>可以看出COPS的Client Context不维护每个版本key的依赖deps，同时每次put操作后都会清空已有context，这是<strong>利用了因果关系的传递性</strong>，如下图所示，z4依赖所有其他操作，但是在dep_check检查依赖性时，只需要检查y1和v6这两个最近依赖即可通过传递性检查到其他所有的依赖。所以put后清空Client Context的用意就是本次put已经依赖了前面所有操作，后续的put只需要依赖本次put就可以了。get获得的结果也要加入到Client Context中是因为类似于图1中$put(y,2)\rightarrow get(y,2)$这种跨线程的因果关系也需要考虑在内。<br><img src="/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/%E5%9B%BE3.png" srcset="/img/loading.gif" lazyload alt="图3" title="图3"></p>
+<h3 id="读事务"><a href="#读事务" class="headerlink" title="读事务"></a>读事务</h3><p>读事务相比于读单个key复杂在需要进行多个key在同一时刻的快照读，以下面这个情景为例。</p>
+<blockquote>
+<p>Client 1: get(ACL)&#x3D;”open” &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; get(album)<br>Client 2: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; put(ACL,”close”) &nbsp;&nbsp;&nbsp;&nbsp; put(album)</p>
+<p>这个场景中，Client 1去获取其他用户的相册内容，首先进行权限验证，由于是open公开相册，所以有了进一步的获取相册内容。但是不巧的是，在两个get操作中间，相册的拥有者将相册改为私密，并且向相册里面添加了私密照片，这就导致了Client 1使用了旧的权限信息获得了新的不符合权限的照片。</p>
+<p>读事务就是为了将多个get操作打包到同一个时间点一起完成，进而避免这种“前朝的剑斩现朝的官”的问题。</p>
+</blockquote>
+<p>为了在同一时刻读取多个key，这就要求了&lt;key,value&gt;的<strong>多版本存储</strong>(是不是挺像MVCC)，这也就是为什么COPS-GT要求存储节点存储键值对的多个版本。下面介绍COPS-GT是如何利用两轮get_by_vers完成读事务get_trans。</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-keyword">def</span> <span class="hljs-title function_">get_trans</span>(<span class="hljs-params">keys</span>):<br>	<span class="hljs-comment"># 第一轮，获取所有key的最新版本</span><br>    <span class="hljs-keyword">for</span> k <span class="hljs-keyword">in</span> keys<br>		results[k] = get_by_vers(k, LATEST)<br>	<span class="hljs-comment"># 根据因果性，计算出每个key所需的版本(存在ccv中)，以最高的为准</span><br>	<span class="hljs-keyword">for</span> k <span class="hljs-keyword">in</span> keys<br>		ccv[k] = <span class="hljs-built_in">max</span>(ccv[k], results[k].vers) <br>		<span class="hljs-keyword">for</span> dep <span class="hljs-keyword">in</span> results[k].deps <span class="hljs-comment"># 更新所有依赖的key的version到最新</span><br>			<span class="hljs-keyword">if</span> dep.key <span class="hljs-keyword">in</span> keys<br>				ccv[dep.key] = <span class="hljs-built_in">max</span>(ccv[dep.key], dep.vers)<br><br>	<span class="hljs-comment"># 第二轮，根据第一轮算出的每个key所需的版本，获取指定版本</span><br>	<span class="hljs-keyword">for</span> k <span class="hljs-keyword">in</span> keys<br>		<span class="hljs-keyword">if</span> ccv[k] &gt; results[k].vers<br>			results[k] = get_by_vers(k, ccv[k])<br><br>	<span class="hljs-comment"># 收尾，更新结果到Client Context中，返回事务结果</span><br>	update_context(results, ctx_id)<br>	<span class="hljs-keyword">return</span> extract_values(results)<br></code></pre></td></tr></table></figure>
+<p>到这里就可以解释<strong>为什么COPS-GT需要记录下历史所有操作结果在Client Context中</strong>？假设在某个线程中按顺序发生了put(x2)，put(y2)，put(z2)三个操作(这里下标假设是key的版本version)，那么z2是依赖x2和y2的，但在实行COPS的最近依赖规则后，z2只需要依赖y2。假设三个值正在数据中心之间进行同步，被同步的数据中心正在进行一次读事务。在第一轮中，先读到x1，随后同步的dep_check检查完成$x_2\rightarrow y_2 \rightarrow z_2$被依次commit，随后读到了z2。由于z2只依赖了y2，所以不会对x1版本仅为1产生质疑，就没有了读事务的第二轮，这导致了读到x1和z2这组不符合因果一致性的结果，所以这就要求了能够支持读事务的COPS-GT不可以将all deps省略为nearest deps。</p>
+<h3 id="垃圾回收"><a href="#垃圾回收" class="headerlink" title="垃圾回收"></a>垃圾回收</h3><h4 id="旧版本数据回收"><a href="#旧版本数据回收" class="headerlink" title="旧版本数据回收"></a>旧版本数据回收</h4><p>因为COPS-GT需要支持读事务，所以需要保存一些旧版本数据，但永久保留将会导致存储节点存储需求无穷上涨，所以需要确定旧版本数据何时可以删除。COPS-GT规定了读事务的超时时间(5秒)，所以一个旧版本数据在被存放超过5秒后，需要它的读事务已经完成或超时结束，后续的读事务使用新版本即可，那么该旧版本数据就可以被清除了。</p>
+<h4 id="存储节点依赖关系回收"><a href="#存储节点依赖关系回收" class="headerlink" title="存储节点依赖关系回收"></a>存储节点依赖关系回收</h4><p>因为COPS-GT支持读事务，第一轮需要返回每个key的deps，所以在存储节点需要记录下每个key的依赖项deps。何时这个依赖项可以被删除呢？COPS-GT规定假设z2是依赖x2的，当z2被所有数据中心commit了并且持续了读事务超时时间(5秒)即可将依赖项删除。</p>
+<ul>
+<li>首先解释为什么需要满足z2被所有数据中心commit，假设数据中心A和B断连，A中已经把z2依赖x2这一信息删除，那么当数据中心A和B重连后，在数据中心B中z2直接可以commit无需等待x2，这时候如果发生了读事务读取x、z就会产生不一致。但是这样的限制会导致当产生网络分区时，该条件始终无法达成。</li>
+<li>再解释一下为什么需要超过5秒才可以删除，假设读事务第一轮读了x1，随后完成$x_2 \rightarrow z_2$被依次commit，并且删除了依赖关系，接着读到了z2。由于没有了$x_2 \rightarrow z_2$的依赖关系，所以不会对x1版本仅为1产生质疑，就没有了读事务的第二轮，这导致了读到x1和z2这组不符合因果一致性的结果。等待5秒是为了保证第一轮读到x1、z2的读事务在整个事务时间范围内可以看到$x_2 \rightarrow z_2$的依赖关系，从而可以第二轮更新x1。</li>
+</ul>
+<h4 id="Client-Context回收"><a href="#Client-Context回收" class="headerlink" title="Client Context回收"></a>Client Context回收</h4><p>当存储节点依赖关系被回收时，会给一个never-depend的标记，这个标记会通过get_by_vers操作返回给Client Library，通过这个标记，就可以将Client Context中该key的所有依赖都从表中删掉，因为never-depend标记也根据因果关系先后发生，所以可以被安全删除。COPS不同数据中心的存储节点会每隔一段时间商议出一个全局检查点时间，代表每个数据中心都一定走过了这个版本，那么比这个全局检查点时间还旧的版本数据就可以从Client Context中删除了。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/" class="print-no-link">#读论文</a>
+      
+        <a href="/tags/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7/" class="print-no-link">#因果一致性</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>因果一致性 COPS</div>
+      <div>http://captain32.github.io/2023/10/15/因果一致性-COPS/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>张熙哲</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年10月15日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-SUNDR/" title="分支一致性 SUNDR">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">分支一致性 SUNDR</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/10/15/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84-Memcached/" title="高并发缓存架构 Memcached">
+                        <span class="hidden-mobile">高并发缓存架构 Memcached</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#comments', function() {
+      var light = 'github-light';
+      var dark = 'github-dark';
+      var schema = document.documentElement.getAttribute('data-user-color-scheme');
+      if (schema === 'dark') {
+        schema = dark;
+      } else {
+        schema = light;
+      }
+      window.UtterancesThemeLight = light;
+      window.UtterancesThemeDark = dark;
+      var s = document.createElement('script');
+      s.setAttribute('src', 'https://utteranc.es/client.js');
+      s.setAttribute('repo', 'Captain32/Utterances-comment');
+      s.setAttribute('issue-term', 'pathname');
+      
+      s.setAttribute('label', 'utterances');
+      
+      s.setAttribute('theme', schema);
+      s.setAttribute('crossorigin', 'anonymous');
+      document.getElementById('comments').appendChild(s);
+    })
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+  
+  
+
+
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="leancloud-site-pv-container" style="display: none">
+        总访问量 
+        <span id="leancloud-site-pv"></span>
+         次
+      </span>
+    
+    
+      <span id="leancloud-site-uv-container" style="display: none">
+        总访客数 
+        <span id="leancloud-site-uv"></span>
+         人
+      </span>
+    
+    
+
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  
+      <script>
+        if (!window.MathJax) {
+          window.MathJax = {
+            tex    : {
+              inlineMath: { '[+]': [['$', '$']] }
+            },
+            loader : {
+              load: ['ui/lazy']
+            },
+            options: {
+              renderActions: {
+                insertedScript: [200, () => {
+                  document.querySelectorAll('mjx-container').forEach(node => {
+                    let target = node.parentNode;
+                    if (target.nodeName.toLowerCase() === 'li') {
+                      target.parentNode.classList.add('has-jax');
+                    }
+                  });
+                }, '', false]
+              }
+            }
+          };
+        } else {
+          MathJax.startup.document.state(0);
+          MathJax.texReset();
+          MathJax.typeset();
+          MathJax.typesetPromise();
+        }
+
+        Fluid.events.registerRefreshCallback(function() {
+          if ('MathJax' in window && MathJax.startup.document && typeof MathJax.startup.document.state === 'function') {
+            MathJax.startup.document.state(0);
+            MathJax.texReset();
+            MathJax.typeset();
+            MathJax.typesetPromise();
+          }
+        });
+      </script>
+    
+
+  <script  src="https://lib.baomitu.com/mathjax/3.2.2/es5/tex-mml-chtml.js" ></script>
+
+  <script defer src="/js/leancloud.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>

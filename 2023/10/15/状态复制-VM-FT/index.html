@@ -16,18 +16,18 @@
   <meta name="author" content="张熙哲">
   <meta name="keywords" content="">
   
-    <meta name="description" content="论文标题为《The Design of a Practical System for Fault-Tolerant Virtual Machines》，发表于2010年，这篇论文主要介绍了VMware的虚拟机状态同步设计VM-FT，通过传递操作日志，达到机器级别的同步，并且具有外部一致性。 状态同步VM-FT要达到的同步是虚拟机级别的同步，虚拟机不需要感知内部的应用程序的状态，所要做的就是所有虚拟">
+    <meta name="description" content="论文标题为《The Design of a Practical System for Fault-Tolerant Virtual Machines》，发表于2010年，这篇论文主要介绍了VMware的虚拟机状态同步设计VM-FT，通过传递操作日志，达到机器级别的同步，并且具有外部一致性。 状态同步 VM-FT要达到的同步是虚拟机级别的同步，虚拟机不需要感知内部的应用程序的状态，所要做的就是所有虚">
 <meta property="og:type" content="article">
 <meta property="og:title" content="状态复制 VM-FT">
 <meta property="og:url" content="http://captain32.github.io/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/index.html">
 <meta property="og:site_name" content="Captain">
-<meta property="og:description" content="论文标题为《The Design of a Practical System for Fault-Tolerant Virtual Machines》，发表于2010年，这篇论文主要介绍了VMware的虚拟机状态同步设计VM-FT，通过传递操作日志，达到机器级别的同步，并且具有外部一致性。 状态同步VM-FT要达到的同步是虚拟机级别的同步，虚拟机不需要感知内部的应用程序的状态，所要做的就是所有虚拟">
+<meta property="og:description" content="论文标题为《The Design of a Practical System for Fault-Tolerant Virtual Machines》，发表于2010年，这篇论文主要介绍了VMware的虚拟机状态同步设计VM-FT，通过传递操作日志，达到机器级别的同步，并且具有外部一致性。 状态同步 VM-FT要达到的同步是虚拟机级别的同步，虚拟机不需要感知内部的应用程序的状态，所要做的就是所有虚">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="http://captain32.github.io/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE1.png">
 <meta property="og:image" content="http://captain32.github.io/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE2.png">
 <meta property="og:image" content="http://captain32.github.io/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE3.png">
 <meta property="article:published_time" content="2023-10-15T09:42:02.000Z">
-<meta property="article:modified_time" content="2023-10-15T10:20:06.095Z">
+<meta property="article:modified_time" content="2023-10-15T12:00:50.971Z">
 <meta property="article:author" content="张熙哲">
 <meta property="article:tag" content="读论文">
 <meta property="article:tag" content="复制">
@@ -323,7 +323,7 @@
         aria-expanded="true"
       >
         MIT6.824 分布式系统
-        <span class="list-group-count">(4)</span>
+        <span class="list-group-count">(16)</span>
         <i class="iconfont icon-arrowright"></i>
       </a>
       
@@ -337,10 +337,109 @@
     
       
       
+        <a href="/2023/10/15/%E5%85%B1%E8%AF%86%E7%AE%97%E6%B3%95-Raft/" title="共识算法 Raft"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">共识算法 Raft</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-FaRM/" title="分布式事务 FaRM"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式事务 FaRM</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1-Spanner/" title="分布式事务 Spanner"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式事务 Spanner</span>
+        </a>
+      
+    
+      
+      
         <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-Frangipani/" title="分布式文件系统 Frangipani"
            class="list-group-item list-group-item-action
            ">
           <span class="category-post">分布式文件系统 Frangipani</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F-GFS/" title="分布式文件系统 GFS"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式文件系统 GFS</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-MapReduce/" title="分布式计算 MapReduce"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式计算 MapReduce</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E5%B8%83%E5%BC%8F%E8%AE%A1%E7%AE%97-Spark/" title="分布式计算 Spark"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分布式计算 Spark</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-CT/" title="分支一致性 CT"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分支一致性 CT</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%88%86%E6%94%AF%E4%B8%80%E8%87%B4%E6%80%A7-SUNDR/" title="分支一致性 SUNDR"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">分支一致性 SUNDR</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%8D%8F%E8%B0%83%E6%9C%8D%E5%8A%A1-Zookeeper/" title="协调服务 Zookeeper"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">协调服务 Zookeeper</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%9B%A0%E6%9E%9C%E4%B8%80%E8%87%B4%E6%80%A7-COPS/" title="因果一致性 COPS"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">因果一致性 COPS</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/15/%E5%AD%98%E7%AE%97%E5%88%86%E7%A6%BB-Aurora/" title="存算分离 Aurora"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">存算分离 Aurora</span>
         </a>
       
     
@@ -371,6 +470,15 @@
         </a>
       
     
+      
+      
+        <a href="/2023/10/15/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BC%93%E5%AD%98%E6%9E%B6%E6%9E%84-Memcached/" title="高并发缓存架构 Memcached"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">高并发缓存架构 Memcached</span>
+        </a>
+      
+    
   </div>
 
         
@@ -395,12 +503,16 @@
               <div class="markdown-body">
                 
                 <p>论文标题为《The Design of a Practical System for Fault-Tolerant Virtual Machines》，发表于2010年，这篇论文主要介绍了VMware的虚拟机状态同步设计VM-FT，通过传递操作日志，达到机器级别的同步，并且具有外部一致性。</p>
-<h2 id="状态同步"><a href="#状态同步" class="headerlink" title="状态同步"></a>状态同步</h2><p><img src="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE1.png" srcset="/img/loading.gif" lazyload alt="图1" title="图1"><br>VM-FT要达到的同步是虚拟机级别的同步，虚拟机不需要感知内部的应用程序的状态，所要做的就是所有虚拟机下辖内存、寄存器等机器级别的同步。为了方便备份虚拟机的快速上任，以及避免硬盘的同步(速度慢)，在VM-FT的设计中，如上图所示主备虚拟机使用的是远端共享硬盘。<br>为了完成状态同步，一般有两种选择：</p>
+<h2 id="状态同步"><a href="#状态同步" class="headerlink" title="状态同步"></a>状态同步</h2><p><img src="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE1.png" srcset="/img/loading.gif" lazyload alt="图1" title="图1"></p>
+<p>VM-FT要达到的同步是虚拟机级别的同步，虚拟机不需要感知内部的应用程序的状态，所要做的就是所有虚拟机下辖内存、寄存器等机器级别的同步。为了方便备份虚拟机的快速上任，以及避免硬盘的同步(速度慢)，在VM-FT的设计中，如上图所示主备虚拟机使用的是远端共享硬盘。</p>
+<p>为了完成状态同步，一般有两种选择：</p>
 <ul>
 <li>直接同步状态，比如对于数据库来说直接同步数据表</li>
 <li><strong>同步操作日志</strong>，主备机从同样的状态开始(VMware实现了VMotion，可以不到1s完成虚拟机的状态复制，使得两个虚拟机可以有相同初始状态)，执行同样的操作，得到同样的确定结果，走到同样的状态</li>
 </ul>
-<p>第一种方式简单直接，但是会有很大的网络IO压力，因为虚拟机级别的状态是一个很大的镜像，不适合实时通过网络同步。VM-FT选择的是第二种方式，在主备虚拟机之间建立一个Logging channel，主虚拟机将所有操作以日志的形式同步给备虚拟机。在主备虚拟机上都有日志缓冲区，分别用于发送、接受，这也相当于是一种速率控制机制，当主虚拟机的发送缓冲区满了时，会调低自己在物理机上的CPU占比，减缓处理Client请求、发送日志的速率。<br>为了保证主备虚拟机状态的完全一致，需要所有操作按照相同顺序在主备虚拟机上执行，主虚拟机会按照顺序记录下执行的所有操作，对于那些可能产生不确定性结果的指令(例如获得当前时间)，还需要在日志项中记录产生的结果等信息，确保在备虚拟机上回放时可以产生相同的结果。还需要考虑中断的处理，VM-FT会将中断按照它发生的时间点，写成日志项插入到对应的日志位置中，使得备虚拟机可以在同样的位置模拟中断的发生。<br>下面给出一些会产生不确定性结果的例子及解决方案：</p>
+<p>第一种方式简单直接，但是会有很大的网络IO压力，因为虚拟机级别的状态是一个很大的镜像，不适合实时通过网络同步。VM-FT选择的是第二种方式，在主备虚拟机之间建立一个Logging channel，主虚拟机将所有操作以日志的形式同步给备虚拟机。在主备虚拟机上都有日志缓冲区，分别用于发送、接受，这也相当于是一种速率控制机制，当主虚拟机的发送缓冲区满了时，会调低自己在物理机上的CPU占比，减缓处理Client请求、发送日志的速率。</p>
+<p>为了保证主备虚拟机状态的完全一致，需要所有操作按照相同顺序在主备虚拟机上执行，主虚拟机会按照顺序记录下执行的所有操作，对于那些可能产生不确定性结果的指令(例如获得当前时间)，还需要在日志项中记录产生的结果等信息，确保在备虚拟机上回放时可以产生相同的结果。还需要考虑中断的处理，VM-FT会将中断按照它发生的时间点，写成日志项插入到对应的日志位置中，使得备虚拟机可以在同样的位置模拟中断的发生。</p>
+<p>下面给出一些会产生不确定性结果的例子及解决方案：</p>
 <ul>
 <li>获得当前时间：主虚拟机执行相应指令触发中断并随后获得当前时间，将指令和结果发送给备虚拟机，备虚拟机重放日志项的时候同样执行指令触发中断，但是采用日志项中记录的结果。</li>
 <li>中断处理：主虚拟机执行指令时遇到了中断，会从CPU读指令号，随后在日志项中标记在某个指令遇到了什么中断，备虚拟机重放日志时，VM-FT在虚拟机执行对应指令时模拟出同样的中断。</li>
@@ -411,8 +523,13 @@
 </li>
 <li>网络IO：网络异步IO会带来不确定性，所以VM-FT杜绝了网络的异步IO(虽然影响性能，但保证了确定性)，网卡向主虚拟机传收到的数据包时，需要发起中断引起CPU介入，那么日志项就如同中断处理一样，将中断、传输的数据都记录在日志项中，备虚拟机重放日志时就在同样的指令时模拟中断，根据日志项记录的数据模拟出从网卡读入数据包。</li>
 </ul>
-<h2 id="外部一致性"><a href="#外部一致性" class="headerlink" title="外部一致性"></a>外部一致性</h2><p>VM-FT希望达到的目标是，外部Client会在主虚拟机正常工作时与之交互，当主虚拟机发生故障后，备虚拟机可以立马上任，与外部Client交互，使得外部Client感知不到机器的切换。<br>首先备虚拟机通过心跳机制以及Logging channel(时间中断就如同心跳一样，每隔一段时间就中断一下产生日志)可以感知到主虚拟机的宕机，这时备虚拟机会将自己日志缓冲区内的日志项重放完成后就转入主虚拟机的角色，向交换机广播自己的MAC地址，开始直接与外部Client交互，而不是向之前一样屏蔽掉自己对外的输出。这个过程可能会产生<strong>脑裂</strong>，即主虚拟机并没有宕机，而是两者网络断连，为了避免这种情况，VM-FT需要虚拟机在升为主节点时在共享磁盘上完成一个test and set操作，如果成功就正式成为主节点，如果失败了就说明另一个机器正在作为主节点，这时这个虚拟机会直接自杀。当备虚拟机升级为主虚拟机后，集群便可以选择另一个机器作为备虚拟机达到容错的目的，可以使用之前说的VMotion创建备虚拟机，这时主虚拟机切换成Log模式，就开始将自己的操作以日志形式同步给新的备虚拟机了。<br>解决了主备切换的问题后，还需要考虑的是对外部Client表现的需要像是没有切换一样，因为主备虚拟机之间一定存在至少一个指令(日志项)的延迟，假如主虚拟机在宕机前处理了某个请求(比如给x&#x3D;10加1得到11)返回结果给Client，但对应的日志还没有传给备虚拟机，当备虚拟机升级为主虚拟机时，就会停在处理这个请求之前的状态(即x&#x3D;10而不是11)，这就违反了外部一致性。为了避免这种情况，VM-FT令主备虚拟机遵守**输出规则(Output Rule)**，当对外进行输出(发送请求、回复)时，主虚拟机需要确保备虚拟机ACK了对应的日志项后，才可以对外真正输出，如下图所示。<br><img src="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE2.png" srcset="/img/loading.gif" lazyload alt="图2" title="图2"><br>输出规则保证了备虚拟机一定知晓对外产生了影响(包括写共享硬盘)的日志项，至于因为延迟而忽略的没来得及发送的操作，由于尚未对外产生影响，可以忽略掉，不会损害对外的一致性。为了避免主虚拟机还没来得及发送消息就宕机，备虚拟机接管后会发送消息(上图Backup的虚线箭头)，虽然有可能产生重复消息(主虚拟机已经发过了)，但是总比没发好，重发问题可以通过Client的TCP排除重复消息以及其他幂等方法解决。</p>
-<h2 id="非共享硬盘场景"><a href="#非共享硬盘场景" class="headerlink" title="非共享硬盘场景"></a>非共享硬盘场景</h2><p>假如因为硬件条件或其他原因无法使用共享硬盘，就可以采用下图的设计，硬盘也被认为是状态的一部分。在开始同步时，除了原有VMotion创建备虚拟机外，还需要再同步一下硬盘内容，之后就依据日志完成同步。在这种场景下，备虚拟机要写自己的硬盘，但出于性能考虑不需要真正读硬盘，直接依赖日志中读的结果就可以。由于硬盘已经是自己私有的，不用像之前一样认为写硬盘是一种对外输出，需要主备虚拟机遵守输出规则，主虚拟机需要等到ACK才真正写，在这种场景中，主虚拟机直接写硬盘就可以，不需要等待。同时，由于缺少了共享存储，应对脑裂问题就需要借助第三方服务来保证只有一个主虚拟机对外交互。<br><img src="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE3.png" srcset="/img/loading.gif" lazyload alt="图3" title="图3"></p>
+<h2 id="外部一致性"><a href="#外部一致性" class="headerlink" title="外部一致性"></a>外部一致性</h2><p>VM-FT希望达到的目标是，外部Client会在主虚拟机正常工作时与之交互，当主虚拟机发生故障后，备虚拟机可以立马上任，与外部Client交互，使得外部Client感知不到机器的切换。</p>
+<p>首先备虚拟机通过心跳机制以及Logging channel(时间中断就如同心跳一样，每隔一段时间就中断一下产生日志)可以感知到主虚拟机的宕机，这时备虚拟机会将自己日志缓冲区内的日志项重放完成后就转入主虚拟机的角色，向交换机广播自己的MAC地址，开始直接与外部Client交互，而不是向之前一样屏蔽掉自己对外的输出。这个过程可能会产生<strong>脑裂</strong>，即主虚拟机并没有宕机，而是两者网络断连，为了避免这种情况，VM-FT需要虚拟机在升为主节点时在共享磁盘上完成一个test and set操作，如果成功就正式成为主节点，如果失败了就说明另一个机器正在作为主节点，这时这个虚拟机会直接自杀。当备虚拟机升级为主虚拟机后，集群便可以选择另一个机器作为备虚拟机达到容错的目的，可以使用之前说的VMotion创建备虚拟机，这时主虚拟机切换成Log模式，就开始将自己的操作以日志形式同步给新的备虚拟机了。</p>
+<p>解决了主备切换的问题后，还需要考虑的是对外部Client表现的需要像是没有切换一样，因为主备虚拟机之间一定存在至少一个指令(日志项)的延迟，假如主虚拟机在宕机前处理了某个请求(比如给x&#x3D;10加1得到11)返回结果给Client，但对应的日志还没有传给备虚拟机，当备虚拟机升级为主虚拟机时，就会停在处理这个请求之前的状态(即x&#x3D;10而不是11)，这就违反了外部一致性。为了避免这种情况，VM-FT令主备虚拟机遵守**输出规则(Output Rule)**，当对外进行输出(发送请求、回复)时，主虚拟机需要确保备虚拟机ACK了对应的日志项后，才可以对外真正输出，如下图所示。</p>
+<p><img src="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE2.png" srcset="/img/loading.gif" lazyload alt="图2" title="图2"></p>
+<p>输出规则保证了备虚拟机一定知晓对外产生了影响(包括写共享硬盘)的日志项，至于因为延迟而忽略的没来得及发送的操作，由于尚未对外产生影响，可以忽略掉，不会损害对外的一致性。为了避免主虚拟机还没来得及发送消息就宕机，备虚拟机接管后会发送消息(上图Backup的虚线箭头)，虽然有可能产生重复消息(主虚拟机已经发过了)，但是总比没发好，重发问题可以通过Client的TCP排除重复消息以及其他幂等方法解决。</p>
+<h2 id="非共享硬盘场景"><a href="#非共享硬盘场景" class="headerlink" title="非共享硬盘场景"></a>非共享硬盘场景</h2><p>假如因为硬件条件或其他原因无法使用共享硬盘，就可以采用下图的设计，硬盘也被认为是状态的一部分。在开始同步时，除了原有VMotion创建备虚拟机外，还需要再同步一下硬盘内容，之后就依据日志完成同步。在这种场景下，备虚拟机要写自己的硬盘，但出于性能考虑不需要真正读硬盘，直接依赖日志中读的结果就可以。由于硬盘已经是自己私有的，不用像之前一样认为写硬盘是一种对外输出，需要主备虚拟机遵守输出规则，主虚拟机需要等到ACK才真正写，在这种场景中，主虚拟机直接写硬盘就可以，不需要等待。同时，由于缺少了共享存储，应对脑裂问题就需要借助第三方服务来保证只有一个主虚拟机对外交互。</p>
+<p><img src="/2023/10/15/%E7%8A%B6%E6%80%81%E5%A4%8D%E5%88%B6-VM-FT/%E5%9B%BE3.png" srcset="/img/loading.gif" lazyload alt="图3" title="图3"></p>
 
                 
               </div>
