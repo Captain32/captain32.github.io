@@ -1,0 +1,1037 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=light>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="张熙哲">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="汇总自《数据库故障恢复机制的前世今生》和《B+树数据库故障恢复概述》两篇文章。 故障恢复保证什么通过故障恢复机制，可以实现数据库的两个至关重要的特性：Durability of Updates以及Failure Atomic，也就是我们常说的的ACID中的A和D，如下：  Durability of Updates：已经Commit的事务的修改，故障恢复后仍然存在 Failure Atomic：失">
+<meta property="og:type" content="article">
+<meta property="og:title" content="B+树故障恢复机制小记">
+<meta property="og:url" content="http://captain32.github.io/2023/10/22/B-%E6%A0%91%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E6%9C%BA%E5%88%B6%E5%B0%8F%E8%AE%B0/index.html">
+<meta property="og:site_name" content="Captain">
+<meta property="og:description" content="汇总自《数据库故障恢复机制的前世今生》和《B+树数据库故障恢复概述》两篇文章。 故障恢复保证什么通过故障恢复机制，可以实现数据库的两个至关重要的特性：Durability of Updates以及Failure Atomic，也就是我们常说的的ACID中的A和D，如下：  Durability of Updates：已经Commit的事务的修改，故障恢复后仍然存在 Failure Atomic：失">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://captain32.github.io/2023/10/22/B-%E6%A0%91%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E6%9C%BA%E5%88%B6%E5%B0%8F%E8%AE%B0/matrix.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/22/B-%E6%A0%91%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E6%9C%BA%E5%88%B6%E5%B0%8F%E8%AE%B0/two_level.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/22/B-%E6%A0%91%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E6%9C%BA%E5%88%B6%E5%B0%8F%E8%AE%B0/sys_trx.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/22/B-%E6%A0%91%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E6%9C%BA%E5%88%B6%E5%B0%8F%E8%AE%B0/rollback.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/22/B-%E6%A0%91%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E6%9C%BA%E5%88%B6%E5%B0%8F%E8%AE%B0/recovery.png">
+<meta property="article:published_time" content="2023-10-22T07:10:54.000Z">
+<meta property="article:modified_time" content="2023-10-22T07:31:09.180Z">
+<meta property="article:author" content="张熙哲">
+<meta property="article:tag" content="B+树">
+<meta property="article:tag" content="故障恢复">
+<meta property="article:tag" content="小记">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://captain32.github.io/2023/10/22/B-%E6%A0%91%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E6%9C%BA%E5%88%B6%E5%B0%8F%E8%AE%B0/matrix.png">
+  
+  
+  
+  <title>B+树故障恢复机制小记 - Captain</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"captain32.github.io","root":"/","version":"1.9.5-a","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":["home"]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":6},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"0DHAyLeOfwqNRanYXNuL4Mhr-gzGzoHsz","app_key":"lq0Ly742okJc5yeBJcZaiHSF","server_url":"https://0dhayleo.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+    <!-- Google tag (gtag.js) -->
+    <script async>
+      if (!Fluid.ctx.dnt) {
+        Fluid.utils.createScript("https://www.googletagmanager.com/gtag/js?id=", function() {
+          window.dataLayer = window.dataLayer || [];
+          function gtag() {
+            dataLayer.push(arguments);
+          }
+          gtag('js', new Date());
+          gtag('config', '');
+        });
+      }
+    </script>
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 65vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Captain&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/lake.jpeg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle">B+树故障恢复机制小记</span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-10-22 15:10" pubdate>
+          2023年10月22日 下午
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3.7k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          32 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="leancloud-page-views"></span> 次
+        </span>
+        
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar category-bar" style="margin-right: -1rem">
+    
+
+
+
+
+
+<div class="category-list">
+  
+  
+    
+    
+    
+    <div class="category row nomargin-x">
+      <a class="category-item 
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="MySQL"
+        id="heading-62a004b95946bb97541afa471dcca73a" role="tab" data-toggle="collapse" href="#collapse-62a004b95946bb97541afa471dcca73a"
+        aria-expanded="true"
+      >
+        MySQL
+        <span class="list-group-count">(4)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse show" id="collapse-62a004b95946bb97541afa471dcca73a"
+           role="tabpanel" aria-labelledby="heading-62a004b95946bb97541afa471dcca73a">
+        
+        
+          
+          
+  <div class="category-post-list">
+    
+    
+  </div>
+
+          
+  
+    
+    
+    
+    <div class="category-sub row nomargin-x">
+      <a class="category-subitem 
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="InnoDB"
+        id="heading-819198c5eb3660413dd452a9d961f8dc" role="tab" data-toggle="collapse" href="#collapse-819198c5eb3660413dd452a9d961f8dc"
+        aria-expanded="true"
+      >
+        InnoDB
+        <span class="list-group-count">(1)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse show" id="collapse-819198c5eb3660413dd452a9d961f8dc"
+           role="tabpanel" aria-labelledby="heading-819198c5eb3660413dd452a9d961f8dc">
+        
+        
+          
+          
+  <div class="category-post-list">
+    
+    
+  </div>
+
+          
+  
+    
+    
+    
+    <div class="category-sub row nomargin-x">
+      <a class="category-subitem 
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="事务 Transaction"
+        id="heading-0d0dbd5af5c95a092f2cd4ba07bbe6f7" role="tab" data-toggle="collapse" href="#collapse-0d0dbd5af5c95a092f2cd4ba07bbe6f7"
+        aria-expanded="true"
+      >
+        事务 Transaction
+        <span class="list-group-count">(1)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse show" id="collapse-0d0dbd5af5c95a092f2cd4ba07bbe6f7"
+           role="tabpanel" aria-labelledby="heading-0d0dbd5af5c95a092f2cd4ba07bbe6f7">
+        
+        
+          
+  <div class="category-post-list">
+    
+    
+      
+      
+        <a href="/2023/10/22/B-%E6%A0%91%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E6%9C%BA%E5%88%B6%E5%B0%8F%E8%AE%B0/" title="B+树故障恢复机制小记"
+           class="list-group-item list-group-item-action
+           active">
+          <span class="category-post">B+树故障恢复机制小记</span>
+        </a>
+      
+    
+  </div>
+
+        
+      </div>
+    </div>
+  
+        
+      </div>
+    </div>
+  
+    
+    
+    
+    <div class="category-sub row nomargin-x">
+      <a class="category-subitem collapsed
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="Server"
+        id="heading-9aa1b03934893d7134a660af4204f2a9" role="tab" data-toggle="collapse" href="#collapse-9aa1b03934893d7134a660af4204f2a9"
+        aria-expanded="false"
+      >
+        Server
+        <span class="list-group-count">(3)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse " id="collapse-9aa1b03934893d7134a660af4204f2a9"
+           role="tabpanel" aria-labelledby="heading-9aa1b03934893d7134a660af4204f2a9">
+        
+        
+          
+          
+  <div class="category-post-list">
+    
+    
+  </div>
+
+          
+  
+    
+    
+    
+    <div class="category-sub row nomargin-x">
+      <a class="category-subitem collapsed
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="事务 Transaction"
+        id="heading-0d0dbd5af5c95a092f2cd4ba07bbe6f7" role="tab" data-toggle="collapse" href="#collapse-0d0dbd5af5c95a092f2cd4ba07bbe6f7"
+        aria-expanded="false"
+      >
+        事务 Transaction
+        <span class="list-group-count">(2)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse " id="collapse-0d0dbd5af5c95a092f2cd4ba07bbe6f7"
+           role="tabpanel" aria-labelledby="heading-0d0dbd5af5c95a092f2cd4ba07bbe6f7">
+        
+        
+          
+  <div class="category-post-list">
+    
+    
+      
+      
+        <a href="/2023/10/15/MySQL%E5%86%85%E9%83%A8%E7%9A%84%E4%B8%A4%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4/" title="MySQL内部的两阶段提交"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">MySQL内部的两阶段提交</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/22/MySQL%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E2%80%94%E2%80%94Server%E7%AF%87/" title="MySQL故障恢复——Server篇"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">MySQL故障恢复——Server篇</span>
+        </a>
+      
+    
+  </div>
+
+        
+      </div>
+    </div>
+  
+    
+    
+    
+    <div class="category-sub row nomargin-x">
+      <a class="category-subitem collapsed
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="复制 Replication"
+        id="heading-fcf1866b36a58537a34a56103c1551ee" role="tab" data-toggle="collapse" href="#collapse-fcf1866b36a58537a34a56103c1551ee"
+        aria-expanded="false"
+      >
+        复制 Replication
+        <span class="list-group-count">(1)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse " id="collapse-fcf1866b36a58537a34a56103c1551ee"
+           role="tabpanel" aria-labelledby="heading-fcf1866b36a58537a34a56103c1551ee">
+        
+        
+          
+  <div class="category-post-list">
+    
+    
+      
+      
+        <a href="/2023/10/15/%E6%B5%85%E6%9E%90MySQL-GTID/" title="浅析MySQL GTID"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">浅析MySQL GTID</span>
+        </a>
+      
+    
+  </div>
+
+        
+      </div>
+    </div>
+  
+        
+      </div>
+    </div>
+  
+        
+      </div>
+    </div>
+  
+</div>
+
+
+  </aside>
+
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">B+树故障恢复机制小记</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <p>汇总自《<a target="_blank" rel="noopener" href="http://catkang.github.io/2019/01/16/crash-recovery.html">数据库故障恢复机制的前世今生</a>》和《<a target="_blank" rel="noopener" href="http://catkang.github.io/2022/10/05/btree-crash-recovery.html">B+树数据库故障恢复概述</a>》两篇文章。</p>
+<h1 id="故障恢复保证什么"><a href="#故障恢复保证什么" class="headerlink" title="故障恢复保证什么"></a>故障恢复保证什么</h1><p>通过故障恢复机制，可以实现数据库的两个至关重要的特性：Durability of Updates以及Failure Atomic，也就是我们常说的的ACID中的A和D，如下：</p>
+<ul>
+<li><strong>Durability of Updates</strong>：已经Commit的事务的修改，故障恢复后仍然存在</li>
+<li><strong>Failure Atomic</strong>：失败事务的所有修改都不可见</li>
+</ul>
+<h1 id="Write-Ahead-Log"><a href="#Write-Ahead-Log" class="headerlink" title="Write Ahead Log"></a>Write Ahead Log</h1><p>由于传统磁盘顺序访问性能远好于随机访问，写日志可以将随机写转换为顺序写，通过预写日志可以实现故障恢复机制，即每次修改数据内容前先顺序写对应的Log，同时为了保证恢复时可以从Log中看到最新的数据库状态，要求Log先于数据内容落盘，也就是常说的Write Ahead Log，WAL。除此之外，事务完成Commit前还需要在Log中记录对应的Commit标记，以供恢复时了解当前的事务状态。根据Log中记录的内容可以分为三类：Undo-Only，Redo-Only，Redo-Undo。</p>
+<h2 id="Undo-Only"><a href="#Undo-Only" class="headerlink" title="Undo-Only"></a>Undo-Only</h2><p>Undo-Only Log记录的是事务每一步修改前数据库的状态，可以<strong>反向</strong>恢复数据库状态，为了保证A和D，每一个事务执行、提交需要按照如下顺序：</p>
+<ol>
+<li>写Log落盘</li>
+<li>写Data落盘</li>
+<li>写Commit标记到Log落盘</li>
+</ol>
+<p>对于预写日志而言，第一步写Log是固定不变的，第二步写数据页第三步写Commit标记是因为Undo-Only Log只能反向恢复，无法正向推进，每次故障恢复的时候将没有Commit标记的事务反向回滚掉即可，这保证了A和D。</p>
+<h2 id="Redo-Only"><a href="#Redo-Only" class="headerlink" title="Redo-Only"></a>Redo-Only</h2><p>Redo-Only Log记录的是事务每一步修改后数据库的状态，可以<strong>正向</strong>推进数据库状态，为了保证A和D，每一个事务执行、提交需要按照如下顺序：</p>
+<ol>
+<li>写Log落盘</li>
+<li>写Commit标记到Log落盘</li>
+<li>写Data落盘</li>
+</ol>
+<p>可以发现，跟Undo-Only相比，2、3步反过来了，这是因为Redo-Only Log只能正向推进，因此不能允许未Commit的事务修改数据落盘，每次故障恢复的时候，检查事务的Commit标记，将数据没有落盘的事务重放一遍即可。</p>
+<h2 id="Redo-Undo"><a href="#Redo-Undo" class="headerlink" title="Redo-Undo"></a>Redo-Undo</h2><p>可以看出只记Undo或者只记Redo都会受限于Data落盘与Commit标记落盘的顺序问题。这会影响到事务的并发，比如修改同一个Page的不同事务：</p>
+<ul>
+<li>Undo-Only Log要求事务提交前Page落盘，那么有些已经修改了内存Page页但还没完成第1步日志落盘的事务会阻塞Page落盘，导致事务迟迟不能提交</li>
+<li>Redo-Only Log要求未Commit的事务不准将Page落盘，那么Page中只要有一个事务尚未提交，其他事务都不准将Page落盘，这些Page长期维护在内存中会造成内存压力。</li>
+</ul>
+<p>为了解决这些问题，可以将事务每一步修改前后数据库状态都记录下来，也就是Redo-Undo Log，这样故障恢复时既可以正向推进，又可以反向回滚，故障恢复的时候先正向推进所有日志项，再反向回滚所有未提交事务即可，这里Redo和Undo内容分别可以保证Durability和Atomic两个特性，其中一种信息的缺失需要用严格的刷盘顺序来弥补：</p>
+<ul>
+<li><strong>Durability of Updates</strong>：Redo内容保证，已提交事务的未刷盘的修改，利用Redo Log中的内容重放，之后可见</li>
+<li><strong>Failure Atomic</strong>：Undo内容保证，失败事务的已刷盘的修改会在恢复阶段通过Undo日志回滚，不再可见</li>
+</ul>
+<p>关于刷盘顺序，有两个维度来衡量，分别作为补充手段保证了D和A，如下：</p>
+<ul>
+<li><strong>Force or No-Force</strong>：Commit时是否需要强制刷盘，采用Force(强制刷盘)的方式，由于所有的已提交事务的数据一定已经存在于磁盘，自然而然地保证了Durability</li>
+<li><strong>No-Steal or Steal</strong>：Commit前数据是否可以提前刷盘，采用No-Steal(不提前刷盘)的方式，由于保证事务提交前修改不会出现在磁盘上，自然而然地保证了Atomic</li>
+</ul>
+<p>即为了保证Durability，可以选择Redo Log或Force；为了保证Atomic，可以选择Undo Log或No-Steal，于是有了下图，左上和右下分别对应了Redo-Only和Undo-Only，右上则是Redo-Undo，由于采用了No-Force和Steal方式，可以获得最好的性能：</p>
+<p><img src="/2023/10/22/B-%E6%A0%91%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E6%9C%BA%E5%88%B6%E5%B0%8F%E8%AE%B0/matrix.png" srcset="/img/loading.gif" lazyload></p>
+<p>由上面分析可见，Redo-Undo Log将写Data和写Commit标记的顺序限制解掉了，No-Force搭配Steal方式不关注Data落盘到底在Commit标记落盘的前面或后面，只要第1步Log落盘了就可以加上Commit标记认为事务已提交，因此事务的执行、提交步骤如下：</p>
+<ol>
+<li>写Log落盘</li>
+<li>写Commit标记到Log落盘</li>
+</ol>
+<h1 id="B-树故障恢复"><a href="#B-树故障恢复" class="headerlink" title="B+树故障恢复"></a>B+树故障恢复</h1><h2 id="分层事务"><a href="#分层事务" class="headerlink" title="分层事务"></a>分层事务</h2><p>为了细化锁的粒度，B+树数据库将Page锁细化为Record锁来提高并发，但是最底层B+树数据页的修改、分裂、合并还是需要做并发控制的，这里使用的锁被称为Latch。于是一个用户事务可以被拆解为逻辑层和物理层两层，逻辑层拿的是Record级别的Lock，物理层拿的是用于保护内部数据结构的Latch，逻辑层的一个事务可以被拆解成多个物理层的小事务(被称为System Transaction，也就是MySQL中的Mini Transaction)，如下：</p>
+<p><img src="/2023/10/22/B-%E6%A0%91%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E6%9C%BA%E5%88%B6%E5%B0%8F%E8%AE%B0/two_level.png" srcset="/img/loading.gif" lazyload></p>
+<h2 id="System-Transaction"><a href="#System-Transaction" class="headerlink" title="System Transaction"></a>System Transaction</h2><p>B+树的用户事务被分为了逻辑和物理两层，物理层又是多个小事务，这些System Transaction也需要有故障恢复机制，那么对应的选项无非就是前面提到的Undo+Force、Redo+No-Steal和Redo-Undo之一，其中Force的缺陷是阻塞并发，No-Steal的缺陷是内存压力大，Redo-Undo的缺陷是空间使用多、维护更复杂。考虑到System Transaction修改的数据相对更少，持续时间更短，并且提交时间可控，No-Steal带来的内存压力的问题似乎无关紧要，因此，大多数的设计中**System Transaction采用Redo+No-Steal的实现方案(还有一个原因在下一节描述)**，也就是要求修改的Page在对应的System Transaction提交之后才能落盘，从而避免记录对System Transaction的Undo Log。如下图所示：</p>
+<p><img src="/2023/10/22/B-%E6%A0%91%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E6%9C%BA%E5%88%B6%E5%B0%8F%E8%AE%B0/sys_trx.png" srcset="/img/loading.gif" lazyload></p>
+<p>对于逻辑层的用户事务来说，记录逻辑层的Undo Log，并且记录物理层的Redo Log，这便是逻辑层的Redo-Undo故障恢复机制，在事务最后记录Transaction Commit标记。对于物理层的System Transaction来说，只记录物理层的Redo Log，依靠Redo+No-Steal保证故障恢复，同时有自己的小Commit标记。由此可见，日志的记录格式是大事务(用户事务)嵌套小事务(系统事务)，并且小事务自身也有一套故障恢复机制。</p>
+<p>再来看下数据修改后的Page何时落盘，从逻辑层来看，Redo-Undo只要求Page落盘在Log落盘后即可；从物理层来看，Redo+No-Steal要求Page落盘在Commit标记落盘之后，因此每个System Transaction所做的Page修改落盘需要在自己小Commit标记之后，至于Transaction Commit标记是否落盘则无需关心。</p>
+<h2 id="事务回滚"><a href="#事务回滚" class="headerlink" title="事务回滚"></a>事务回滚</h2><p>在用户事务执行期间，发生死锁或用户显式ROLLBACK，需要回滚事务，那么对于已经提交的部分System Transaction也需要回退。假设这么一个场景，上面示例图中Insert B导致了B+树页分裂，那么该System Transaction提交后分裂的页已经被其他事物可见，已经在分裂页内做了修改，这时如果想要删掉这个分裂页完成回滚就很难做到。所以物理层的回滚是很难实现的，于是B+树的事务回滚是从逻辑层入手的，如下：</p>
+<p><img src="/2023/10/22/B-%E6%A0%91%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E6%9C%BA%E5%88%B6%E5%B0%8F%E8%AE%B0/rollback.png" srcset="/img/loading.gif" lazyload></p>
+<p>逻辑层倒序执行逆操作，发起一个个新的System Transaction即可，例如Insert对应Delete，等所有逆操作执行完成后，就完成了数据库的回滚。既然回滚操作只需要逻辑层的操作，那么只记逻辑层Undo Log不记物理层Undo Log也显得更加合理(<strong>上一节物理层Redo+No-Steal原因之一</strong>)。</p>
+<p>还可以发现一个有趣的现象，这样分层事务的回滚，达成的是逻辑层的回滚，物理层并没有完全恢复到事务开始前的样子(例如上图Insert B产生的分裂页在Delete B时并没有被合并回去)，但这也是符合我们预期的。</p>
+<h2 id="故障恢复流程"><a href="#故障恢复流程" class="headerlink" title="故障恢复流程"></a>故障恢复流程</h2><p>有了前面的介绍，B+树故障恢复流程就呼之欲出了，分为Redo和Undo两阶段，先在物理层Redo所有Commit的System Transaction，然后在逻辑层Undo掉没有Transaction Commit的用户事务，如下：<br><img src="/2023/10/22/B-%E6%A0%91%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E6%9C%BA%E5%88%B6%E5%B0%8F%E8%AE%B0/recovery.png" srcset="/img/loading.gif" lazyload><br>至此已经有了B+树故障恢复机制的概貌，那么很容易想到，逻辑层的Undo Log应该记录逻辑内容，物理层的Redo Log应该记录物理内容，这也是MySQL实现时所作的，不过Redo Log部分采用了物理搭配逻辑的记录，并不是完整记录所有数据页，这样太耗费空间了，而是使用页号+offset这种逻辑方式辅助完成物理页的日志记录。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MySQL/" class="category-chain-item">MySQL</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/MySQL/InnoDB/" class="category-chain-item">InnoDB</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/MySQL/InnoDB/%E4%BA%8B%E5%8A%A1-Transaction/" class="category-chain-item">事务 Transaction</a>
+  
+  
+
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/B-%E6%A0%91/" class="print-no-link">#B+树</a>
+      
+        <a href="/tags/%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D/" class="print-no-link">#故障恢复</a>
+      
+        <a href="/tags/%E5%B0%8F%E8%AE%B0/" class="print-no-link">#小记</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>B+树故障恢复机制小记</div>
+      <div>http://captain32.github.io/2023/10/22/B-树故障恢复机制小记/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>张熙哲</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年10月22日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                      <a href="/2023/10/22/MySQL%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E2%80%94%E2%80%94Server%E7%AF%87/" title="MySQL故障恢复——Server篇">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">MySQL故障恢复——Server篇</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/10/15/MySQL%E5%86%85%E9%83%A8%E7%9A%84%E4%B8%A4%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4/" title="MySQL内部的两阶段提交">
+                        <span class="hidden-mobile">MySQL内部的两阶段提交</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#comments', function() {
+      var light = 'github-light';
+      var dark = 'github-dark';
+      var schema = document.documentElement.getAttribute('data-user-color-scheme');
+      if (schema === 'dark') {
+        schema = dark;
+      } else {
+        schema = light;
+      }
+      window.UtterancesThemeLight = light;
+      window.UtterancesThemeDark = dark;
+      var s = document.createElement('script');
+      s.setAttribute('src', 'https://utteranc.es/client.js');
+      s.setAttribute('repo', 'Captain32/Utterances-comment');
+      s.setAttribute('issue-term', 'pathname');
+      
+      s.setAttribute('label', 'utterances');
+      
+      s.setAttribute('theme', schema);
+      s.setAttribute('crossorigin', 'anonymous');
+      document.getElementById('comments').appendChild(s);
+    })
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="leancloud-site-pv-container" style="display: none">
+        总访问量 
+        <span id="leancloud-site-pv"></span>
+         次
+      </span>
+    
+    
+      <span id="leancloud-site-uv-container" style="display: none">
+        总访客数 
+        <span id="leancloud-site-uv"></span>
+         人
+      </span>
+    
+    
+
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script defer src="/js/leancloud.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
