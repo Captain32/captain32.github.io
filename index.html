@@ -255,6 +255,85 @@
     <article class="col-12 col-md-12 mx-auto index-info">
       <h2 class="index-header">
         
+        <a href="/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/" target="_self">
+          MySQL Undo Log基本结构与初始化
+        </a>
+      </h2>
+
+      
+      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/" target="_self">
+        <div>
+          文件组织结构基本知识介绍摘自《庖丁解InnoDB之Undo LOG》。 Tablespace&amp;Rollback SegmentUndo Log在磁盘上的载体是一个个Tablespace文件，每个Tablespace文件中的第三页是一个类似于目录页的Rollback Segment Arrary Header，这就是一个数组，里面存了该Tablespace文件下所有Rollback Segm
+        </div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>
+            <time datetime="2023-10-22 23:50" pubdate>
+              2023-10-22
+            </time>
+          </div>
+        
+        
+          <div class="post-meta mr-3 d-flex align-items-center">
+            <i class="iconfont icon-category"></i>
+            
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MySQL/" class="category-chain-item">MySQL</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/MySQL/InnoDB/" class="category-chain-item">InnoDB</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/MySQL/InnoDB/%E4%BA%8B%E5%8A%A1-Transaction/" class="category-chain-item">事务 Transaction</a>
+  
+  
+
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/MySQL/">#MySQL</a>
+            
+              <a href="/tags/Undo-Log/">#Undo Log</a>
+            
+              <a href="/tags/%E8%AF%BB%E6%BA%90%E7%A0%81/">#读源码</a>
+            
+          </div>
+        
+      </div>
+    </article>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <article class="col-12 col-md-12 mx-auto index-info">
+      <h2 class="index-header">
+        
         <a href="/2023/10/22/MySQL%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E2%80%94%E2%80%94Server%E7%AF%87/" target="_self">
           MySQL故障恢复——Server篇
         </a>
@@ -476,11 +555,11 @@
             
               <a href="/tags/MySQL/">#MySQL</a>
             
+              <a href="/tags/%E8%AF%BB%E6%BA%90%E7%A0%81/">#读源码</a>
+            
               <a href="/tags/%E4%B8%A4%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4/">#两阶段提交</a>
             
               <a href="/tags/%E7%BB%84%E6%8F%90%E4%BA%A4/">#组提交</a>
-            
-              <a href="/tags/%E8%AF%BB%E6%BA%90%E7%A0%81/">#读源码</a>
             
           </div>
         
@@ -864,74 +943,11 @@
     </article>
   </div>
 
-  <div class="row mx-auto index-card">
-    
-    
-    <article class="col-12 col-md-12 mx-auto index-info">
-      <h2 class="index-header">
-        
-        <a href="/2023/10/15/%E5%AD%98%E7%AE%97%E5%88%86%E7%A6%BB-Aurora/" target="_self">
-          存算分离 Aurora
-        </a>
-      </h2>
-
-      
-      <a class="index-excerpt index-excerpt__noimg" href="/2023/10/15/%E5%AD%98%E7%AE%97%E5%88%86%E7%A6%BB-Aurora/" target="_self">
-        <div>
-          论文标题为《Amazon Aurora: Design Considerations for High Throughput Cloud-Native Relational Databases》，发表于2017年，这篇论文主要介绍了Amazon的AWS RDS Mysql应对云场景进行的数据库存算分离架构设计。 原始Mysql原始Mysql的主从备份流程如上图所示，数据库实例写远端硬盘EBS(1&
-        </div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>
-            <time datetime="2023-10-15 20:50" pubdate>
-              2023-10-15
-            </time>
-          </div>
-        
-        
-          <div class="post-meta mr-3 d-flex align-items-center">
-            <i class="iconfont icon-category"></i>
-            
-
-<span class="category-chains">
-  
-  
-    
-      <span class="category-chain">
-        
-  <a href="/categories/MIT6-824-%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/" class="category-chain-item">MIT6.824 分布式系统</a>
-  
-  
-
-      </span>
-    
-  
-</span>
-
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/MySQL/">#MySQL</a>
-            
-              <a href="/tags/%E8%AF%BB%E8%AE%BA%E6%96%87/">#读论文</a>
-            
-          </div>
-        
-      </div>
-    </article>
-  </div>
-
 
 
   <nav aria-label="navigation">
     <span class="pagination" id="pagination">
-      <span class="page-number current">1</span><a class="page-number" href="/page/2/#board">2</a><a class="extend next" rel="next" href="/page/2/#board"><i class="iconfont icon-arrowright"></i></a>
+      <span class="page-number current">1</span><a class="page-number" href="/page/2/#board">2</a><a class="page-number" href="/page/3/#board">3</a><a class="extend next" rel="next" href="/page/2/#board"><i class="iconfont icon-arrowright"></i></a>
     </span>
   </nav>
 

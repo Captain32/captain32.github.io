@@ -1,0 +1,1023 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=light>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="张熙哲">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="文件组织结构基本知识介绍摘自《庖丁解InnoDB之Undo LOG》。 Tablespace&amp;Rollback SegmentUndo Log在磁盘上的载体是一个个Tablespace文件，每个Tablespace文件中的第三页是一个类似于目录页的Rollback Segment Arrary Header，这就是一个数组，里面存了该Tablespace文件下所有Rollback Segm">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL Undo Log基本结构与初始化">
+<meta property="og:url" content="http://captain32.github.io/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/index.html">
+<meta property="og:site_name" content="Captain">
+<meta property="og:description" content="文件组织结构基本知识介绍摘自《庖丁解InnoDB之Undo LOG》。 Tablespace&amp;Rollback SegmentUndo Log在磁盘上的载体是一个个Tablespace文件，每个Tablespace文件中的第三页是一个类似于目录页的Rollback Segment Arrary Header，这就是一个数组，里面存了该Tablespace文件下所有Rollback Segm">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://captain32.github.io/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/tablespace.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/undo_segment.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/undo_log.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/insert_record.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/update_record.png">
+<meta property="og:image" content="http://captain32.github.io/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/mvcc.png">
+<meta property="article:published_time" content="2023-10-22T15:50:20.000Z">
+<meta property="article:modified_time" content="2023-10-22T15:57:00.207Z">
+<meta property="article:author" content="张熙哲">
+<meta property="article:tag" content="MySQL">
+<meta property="article:tag" content="Undo Log">
+<meta property="article:tag" content="读源码">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://captain32.github.io/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/tablespace.png">
+  
+  
+  
+  <title>MySQL Undo Log基本结构与初始化 - Captain</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"captain32.github.io","root":"/","version":"1.9.5-a","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":["home"]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":6},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":true,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":"0DHAyLeOfwqNRanYXNuL4Mhr-gzGzoHsz","app_key":"lq0Ly742okJc5yeBJcZaiHSF","server_url":"https://0dhayleo.lc-cn-n1-shared.com","path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+  
+
+  
+    <!-- Google tag (gtag.js) -->
+    <script async>
+      if (!Fluid.ctx.dnt) {
+        Fluid.utils.createScript("https://www.googletagmanager.com/gtag/js?id=", function() {
+          window.dataLayer = window.dataLayer || [];
+          function gtag() {
+            dataLayer.push(arguments);
+          }
+          gtag('js', new Date());
+          gtag('config', '');
+        });
+      }
+    </script>
+  
+
+  
+
+  
+
+  
+
+  
+    
+  
+
+
+
+  
+<meta name="generator" content="Hexo 6.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 65vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Captain&#39;s Blog</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/lake.jpeg') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle">MySQL Undo Log基本结构与初始化</span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2023-10-22 23:50" pubdate>
+          2023年10月22日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          14k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          119 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="leancloud-page-views-container" class="post-meta" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="leancloud-page-views"></span> 次
+        </span>
+        
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar category-bar" style="margin-right: -1rem">
+    
+
+
+
+
+
+<div class="category-list">
+  
+  
+    
+    
+    
+    <div class="category row nomargin-x">
+      <a class="category-item 
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="MySQL"
+        id="heading-62a004b95946bb97541afa471dcca73a" role="tab" data-toggle="collapse" href="#collapse-62a004b95946bb97541afa471dcca73a"
+        aria-expanded="true"
+      >
+        MySQL
+        <span class="list-group-count">(5)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse show" id="collapse-62a004b95946bb97541afa471dcca73a"
+           role="tabpanel" aria-labelledby="heading-62a004b95946bb97541afa471dcca73a">
+        
+        
+          
+          
+  <div class="category-post-list">
+    
+    
+  </div>
+
+          
+  
+    
+    
+    
+    <div class="category-sub row nomargin-x">
+      <a class="category-subitem 
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="InnoDB"
+        id="heading-819198c5eb3660413dd452a9d961f8dc" role="tab" data-toggle="collapse" href="#collapse-819198c5eb3660413dd452a9d961f8dc"
+        aria-expanded="true"
+      >
+        InnoDB
+        <span class="list-group-count">(2)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse show" id="collapse-819198c5eb3660413dd452a9d961f8dc"
+           role="tabpanel" aria-labelledby="heading-819198c5eb3660413dd452a9d961f8dc">
+        
+        
+          
+          
+  <div class="category-post-list">
+    
+    
+  </div>
+
+          
+  
+    
+    
+    
+    <div class="category-sub row nomargin-x">
+      <a class="category-subitem 
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="事务 Transaction"
+        id="heading-0d0dbd5af5c95a092f2cd4ba07bbe6f7" role="tab" data-toggle="collapse" href="#collapse-0d0dbd5af5c95a092f2cd4ba07bbe6f7"
+        aria-expanded="true"
+      >
+        事务 Transaction
+        <span class="list-group-count">(2)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse show" id="collapse-0d0dbd5af5c95a092f2cd4ba07bbe6f7"
+           role="tabpanel" aria-labelledby="heading-0d0dbd5af5c95a092f2cd4ba07bbe6f7">
+        
+        
+          
+  <div class="category-post-list">
+    
+    
+      
+      
+        <a href="/2023/10/22/B-%E6%A0%91%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E6%9C%BA%E5%88%B6%E5%B0%8F%E8%AE%B0/" title="B+树故障恢复机制小记"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">B+树故障恢复机制小记</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/" title="MySQL Undo Log基本结构与初始化"
+           class="list-group-item list-group-item-action
+           active">
+          <span class="category-post">MySQL Undo Log基本结构与初始化</span>
+        </a>
+      
+    
+  </div>
+
+        
+      </div>
+    </div>
+  
+        
+      </div>
+    </div>
+  
+    
+    
+    
+    <div class="category-sub row nomargin-x">
+      <a class="category-subitem collapsed
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="Server"
+        id="heading-9aa1b03934893d7134a660af4204f2a9" role="tab" data-toggle="collapse" href="#collapse-9aa1b03934893d7134a660af4204f2a9"
+        aria-expanded="false"
+      >
+        Server
+        <span class="list-group-count">(3)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse " id="collapse-9aa1b03934893d7134a660af4204f2a9"
+           role="tabpanel" aria-labelledby="heading-9aa1b03934893d7134a660af4204f2a9">
+        
+        
+          
+          
+  <div class="category-post-list">
+    
+    
+  </div>
+
+          
+  
+    
+    
+    
+    <div class="category-sub row nomargin-x">
+      <a class="category-subitem collapsed
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="事务 Transaction"
+        id="heading-0d0dbd5af5c95a092f2cd4ba07bbe6f7" role="tab" data-toggle="collapse" href="#collapse-0d0dbd5af5c95a092f2cd4ba07bbe6f7"
+        aria-expanded="false"
+      >
+        事务 Transaction
+        <span class="list-group-count">(2)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse " id="collapse-0d0dbd5af5c95a092f2cd4ba07bbe6f7"
+           role="tabpanel" aria-labelledby="heading-0d0dbd5af5c95a092f2cd4ba07bbe6f7">
+        
+        
+          
+  <div class="category-post-list">
+    
+    
+      
+      
+        <a href="/2023/10/15/MySQL%E5%86%85%E9%83%A8%E7%9A%84%E4%B8%A4%E9%98%B6%E6%AE%B5%E6%8F%90%E4%BA%A4/" title="MySQL内部的两阶段提交"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">MySQL内部的两阶段提交</span>
+        </a>
+      
+    
+      
+      
+        <a href="/2023/10/22/MySQL%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E2%80%94%E2%80%94Server%E7%AF%87/" title="MySQL故障恢复——Server篇"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">MySQL故障恢复——Server篇</span>
+        </a>
+      
+    
+  </div>
+
+        
+      </div>
+    </div>
+  
+    
+    
+    
+    <div class="category-sub row nomargin-x">
+      <a class="category-subitem collapsed
+          list-group-item category-item-action col-10 col-md-11 col-xm-11" title="复制 Replication"
+        id="heading-fcf1866b36a58537a34a56103c1551ee" role="tab" data-toggle="collapse" href="#collapse-fcf1866b36a58537a34a56103c1551ee"
+        aria-expanded="false"
+      >
+        复制 Replication
+        <span class="list-group-count">(1)</span>
+        <i class="iconfont icon-arrowright"></i>
+      </a>
+      
+      <div class="category-collapse collapse " id="collapse-fcf1866b36a58537a34a56103c1551ee"
+           role="tabpanel" aria-labelledby="heading-fcf1866b36a58537a34a56103c1551ee">
+        
+        
+          
+  <div class="category-post-list">
+    
+    
+      
+      
+        <a href="/2023/10/15/%E6%B5%85%E6%9E%90MySQL-GTID/" title="浅析MySQL GTID"
+           class="list-group-item list-group-item-action
+           ">
+          <span class="category-post">浅析MySQL GTID</span>
+        </a>
+      
+    
+  </div>
+
+        
+      </div>
+    </div>
+  
+        
+      </div>
+    </div>
+  
+        
+      </div>
+    </div>
+  
+</div>
+
+
+  </aside>
+
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">MySQL Undo Log基本结构与初始化</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="文件组织结构"><a href="#文件组织结构" class="headerlink" title="文件组织结构"></a><strong>文件组织结构</strong></h1><p>基本知识介绍摘自《<a target="_blank" rel="noopener" href="http://catkang.github.io/2021/10/30/mysql-undo.html">庖丁解InnoDB之Undo LOG</a>》。</p>
+<h2 id="Tablespace-Rollback-Segment"><a href="#Tablespace-Rollback-Segment" class="headerlink" title="Tablespace&amp;Rollback Segment"></a><strong>Tablespace&amp;Rollback Segment</strong></h2><p>Undo Log在磁盘上的载体是一个个Tablespace文件，每个Tablespace文件中的第三页是一个类似于目录页的Rollback Segment Arrary Header，这就是一个数组，里面存了该Tablespace文件下所有Rollback Segment Header的位置(下图其实画得有误，数组里面每个slot只要存Page no即可，不用存Space id，因为已经在该文件内了)。一个Tablespace文件中最多有128个Rollback Segment，每个Rollback Segment的Header里面也有个数组，共1024个slot，每个slot存的是一个Undo Segment开头的Page号。<br><img src="/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/tablespace.png" srcset="/img/loading.gif" lazyload></p>
+<h2 id="Undo-Segment"><a href="#Undo-Segment" class="headerlink" title="Undo Segment"></a><strong>Undo Segment</strong></h2><p>一个Undo Segment由一个或者多个物理页组成，其中存的可能是一个或多个Undo Log，普通情况下只会存一个Undo Log。只有当某个Undo Log太小，到提交或回滚时只占了所在Undo Segment<strong>首页不到3&#x2F;4</strong>时，才会复用该Undo Segment，等下一个事务来的时候，继续在其上写新事务的Undo Log。<br><img src="/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/undo_segment.png" srcset="/img/loading.gif" lazyload></p>
+<h2 id="Undo-Log"><a href="#Undo-Log" class="headerlink" title="Undo Log"></a><strong>Undo Log</strong></h2><p>Undo Log则是伴随着一个事务的开始到结束，里面有Header记录了一些元信息，之后就是一个个Undo Record，代表着一个个修改操作。<br><img src="/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/undo_log.png" srcset="/img/loading.gif" lazyload></p>
+<h2 id="Undo-Record"><a href="#Undo-Record" class="headerlink" title="Undo Record"></a><strong>Undo Record</strong></h2><p>每当InnoDB中需要修改某个Record时，都会将其历史版本写入一个Undo Log中，对应的Undo Record是Update类型，这些历史版本会在MVCC中被用到。当插入新的Record时，还没有一个历史版本，但为了方便事务回滚时做逆向(Delete)操作，这里还是会写入一个Insert类型的Undo Record。</p>
+<h3 id="Insert类型"><a href="#Insert类型" class="headerlink" title="Insert类型"></a><strong>Insert类型</strong></h3><p>Insert Undo Record仅仅是为了可能的事务回滚准备的，并不在MVCC中承担作用。因此只需要记录对应Record的Key，供回滚时查找Record位置即可，对应的Type是TRX_UNDO_INSERT_REC。</p>
+<p><img src="/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/insert_record.png" srcset="/img/loading.gif" lazyload></p>
+<p>其中Undo Number是Undo的一个递增编号，Table ID用来表示是哪张表的修改。下面一组Key Fields的长度不定，因为对应表的主键可能由多个field组成，这里需要记录Record完整的主键信息，回滚的时候可以通过这个信息在索引中定位到对应的Record。除此之外，在Undo Record的头尾还各留了两个字节用户记录其前序和后继Undo Record的位置。</p>
+<h3 id="Update类型"><a href="#Update类型" class="headerlink" title="Update类型"></a><strong>Update类型</strong></h3><p>由于MVCC需要保留Record的多个历史版本，当某个Record的历史版本还在被使用时，这个Record是不能被真正删除的。因此，当需要删除时，其实只是修改对应Record的Delete Mark标记，如果这时这个Record又重新插入，其实也只是修改一下Delete Mark标记，也就是将这两种情况的delete和insert转变成了update操作。再加上常规的Record修改，因此这里的Update Undo Record会对应三种Type：TRX_UNDO_UPD_EXIST_REC、TRX_UNDO_DEL_MARK_REC和TRX_UNDO_UPD_DEL_REC。</p>
+<p><img src="/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/update_record.png" srcset="/img/loading.gif" lazyload></p>
+<p>除了跟Insert Undo Record相同的头尾信息，以及主键Key Fileds之外，Update Undo Record增加了：</p>
+<ul>
+<li>Transaction Id记录了产生这个历史版本事务Id，用作后续MVCC中的版本可见性判断</li>
+<li>Rollptr指向的是该记录的上一个版本的位置，包括space number，page number和page内的offset。沿着Rollptr可以找到一个Record的所有历史版本。</li>
+<li>Update Fields中记录的就是当前这个Record版本相对于其之后的一次修改的Delta信息，包括所有被修改的Field的编号，长度和历史值。</li>
+</ul>
+<p>Undo Log和MVCC的大致示意图可以如下图所示：<br><img src="/2023/10/22/MySQL-Undo-Log%E5%9F%BA%E6%9C%AC%E7%BB%93%E6%9E%84%E4%B8%8E%E5%88%9D%E5%A7%8B%E5%8C%96/mvcc.png" srcset="/img/loading.gif" lazyload></p>
+<h1 id="数据结构"><a href="#数据结构" class="headerlink" title="数据结构"></a><strong>数据结构</strong></h1><p>上面介绍的Tablespace、Rollback Segment、Undo Log在代码中都有对应的数据结构，分别对应的是Tablespace、trx_rseg_t和trx_undo_t，它们的结构体定义主体以及关联如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">Tablespace</span> &#123;<br>  ...<br>  <span class="hljs-type">space_id_t</span> m_id; <span class="hljs-comment">//space id，唯一标识Tablespace</span><br>  <span class="hljs-type">char</span> *m_space_name; <span class="hljs-comment">//Tablespace名称</span><br>  <span class="hljs-type">char</span> *m_file_name; <span class="hljs-comment">//Tablespace文件名</span><br>  Rsegs *m_rsegs; <span class="hljs-comment">//存trx_rseg_t元素的vector，关联了Tablespace下的Rollback Segment们</span><br>  ...<br>&#125;<br><br><span class="hljs-keyword">struct</span> <span class="hljs-title class_">trx_rseg_t</span> &#123;<br>  ...<br>  <span class="hljs-type">size_t</span> id&#123;&#125;; <span class="hljs-comment">//Rollback Segment id，即其在Rollback Segment Array数组中的位置</span><br>  RsegMutex mutex; <span class="hljs-comment">//Undo Log的并发是以Rollback Segment为单位的</span><br>  <span class="hljs-type">space_id_t</span> space_id&#123;&#125;; <span class="hljs-comment">//关联到所属的Tablespace</span><br>  <span class="hljs-type">page_no_t</span> page_no&#123;&#125;; <span class="hljs-comment">//Rollback Segment Header所在的页号</span><br>  <span class="hljs-type">page_size_t</span> page_size; <span class="hljs-comment">//所在Tablespace规定的每个页的大小</span><br>  <span class="hljs-type">page_no_t</span> max_size&#123;&#125;; <span class="hljs-comment">//本Segment内允许使用的最大页数</span><br>  <span class="hljs-type">page_no_t</span> curr_size&#123;&#125;; <span class="hljs-comment">//本Segment内已经使用的页数</span><br>  Undo_list update_undo_list; <span class="hljs-comment">//存trx_undo_t元素的list，代表本Segment下正在使用中的update类型Undo Log</span><br>  Undo_list update_undo_cached; <span class="hljs-comment">//事务已经结束，等待被复用的update类型Undo Segment</span><br>  Undo_list insert_undo_list; <span class="hljs-comment">//代表本Segment下正在使用中的insert类型Undo Log。</span><br>  Undo_list insert_undo_cached; <span class="hljs-comment">//事务已经结束，等待被复用的insert类型Undo Segment</span><br>  ...<br>&#125;<br><br><span class="hljs-keyword">struct</span> <span class="hljs-title class_">trx_undo_t</span> &#123;<br>  ulint id; <span class="hljs-comment">//在所属Rollback Segment中slot的位置</span><br>  ulint type; <span class="hljs-comment">//TRX_UNDO_INSERT或TRX_UNDO_UPDATE</span><br>  ulint state; <span class="hljs-comment">//所在Undo Segment的状态，例如active、prepared、in cache等等</span><br>  <span class="hljs-type">bool</span> del_marks; <span class="hljs-comment">//仅在TRX_UNDO_UPDATE类型Undo Log中有用，表示当前事务是否给行加过del_mark</span><br>  <span class="hljs-type">trx_id_t</span> trx_id; <span class="hljs-comment">//所属的事务id</span><br>  XID xid; <span class="hljs-comment">//Server层和引擎层共用的xid</span><br>  Gtid_storage m_gtid_storage&#123;Gtid_storage::NONE&#125;; <span class="hljs-comment">//标识是否分配了存gtid的空间</span><br>  <span class="hljs-type">trx_rseg_t</span> *rseg; <span class="hljs-comment">//所属的Rollback Segment</span><br>  <span class="hljs-type">space_id_t</span> space; <span class="hljs-comment">//所属Tablespace的id</span><br>  <span class="hljs-type">page_size_t</span> page_size; <span class="hljs-comment">//所在Tablespace规定的每个页的大小</span><br>  <span class="hljs-type">page_no_t</span> hdr_page_no; <span class="hljs-comment">//本undo log header所在页号</span><br>  ulint hdr_offset; <span class="hljs-comment">//本undo log header在页中的offset</span><br>  <span class="hljs-type">page_no_t</span> last_page_no; <span class="hljs-comment">//undo log最后一页的页号</span><br>  ulint size; <span class="hljs-comment">//undo log已使用的页数</span><br>  ulint empty; <span class="hljs-comment">//undo log当前是否空的</span><br>  <span class="hljs-type">page_no_t</span> top_page_no; <span class="hljs-comment">//最后一个record所在的页号</span><br>  ulint top_offset; <span class="hljs-comment">//最后一个record的offset</span><br>  <span class="hljs-type">undo_no_t</span> top_undo_no; <span class="hljs-comment">//最后一个record的undo number</span><br>  <span class="hljs-type">buf_block_t</span> *guess_block; <span class="hljs-comment">//最后一页可能被加载到guess_block这块内存空间，不保证</span><br>  <span class="hljs-built_in">UT_LIST_NODE_T</span>(<span class="hljs-type">trx_undo_t</span>) undo_list; <span class="hljs-comment">//这里是一个list node定义，前后串起来同在一个Rollback Segment下的Undo Log</span><br>&#125;<br></code></pre></td></tr></table></figure>
+<h2 id="事务与Undo-Log如何关联"><a href="#事务与Undo-Log如何关联" class="headerlink" title="事务与Undo Log如何关联"></a>事务与Undo Log如何关联</h2><p>Undo Log是与事务强关联的，所以需要有途径使得事务可以访问到自己的Undo Log，在源码中是如下关联起来的：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-keyword">struct</span> <span class="hljs-title class_">trx_t</span> &#123;<br>  ...<br>  <span class="hljs-comment">/* 分配给本事务的Rollback Segment们，分为两类：</span><br><span class="hljs-comment">     1.位于系统或Undo Tablespace中，需要用Redo Log记录本身变化，在故障恢复时重构</span><br><span class="hljs-comment">     2.位于临时Tablespace中，不需要Redo Log记录本身变化 */</span><br>  <span class="hljs-type">trx_rsegs_t</span> rsegs;<br>  ...<br>&#125;<br><br><span class="hljs-keyword">struct</span> <span class="hljs-title class_">trx_rsegs_t</span> &#123;<br>  <span class="hljs-type">trx_undo_ptr_t</span> m_redo; <span class="hljs-comment">//上述第一类Rollback Segment与本事务相关的信息</span><br>  <span class="hljs-type">trx_undo_ptr_t</span> m_noredo; <span class="hljs-comment">//上述第二类Rollback Segment与本事务相关的信息</span><br>&#125;<br><br><span class="hljs-keyword">struct</span> <span class="hljs-title class_">trx_undo_ptr_t</span> &#123;<br>  <span class="hljs-type">trx_rseg_t</span> *rseg; <span class="hljs-comment">//分配给本事务的Rollback Segment</span><br>  <span class="hljs-type">trx_undo_t</span> *insert_undo; <span class="hljs-comment">//本事务的Insert类型Undo Log</span><br>  <span class="hljs-type">trx_undo_t</span> *update_undo; <span class="hljs-comment">//本事务的Update类型Undo Log</span><br>&#125;<br></code></pre></td></tr></table></figure>
+<h1 id="Tablespace初始化"><a href="#Tablespace初始化" class="headerlink" title="Tablespace初始化"></a><strong>Tablespace初始化</strong></h1><p>无论是Innodb启动自动创建还是用户指定创建，创建的Tablespace文件会被分配一个唯一的space id，并被加入到等待初始化的数组中，随后在srv_undo_tablespaces_construct函数中会将新创建的Tablespace文件初始化，如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-function"><span class="hljs-type">static</span> <span class="hljs-type">dberr_t</span> <span class="hljs-title">srv_undo_tablespaces_construct</span><span class="hljs-params">()</span> </span>&#123;<br>  <span class="hljs-type">mtr_t</span> mtr;<br>  ...<br>  <span class="hljs-comment">/* 对所用等待初始化的Tablespace文件进行遍历，space_id和文件一一对应 */</span><br>  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">auto</span> space_id : undo::s_under_construction) &#123;<br>    ...<br>    <span class="hljs-built_in">log_free_check</span>();<br>    <span class="hljs-built_in">mtr_start</span>(&amp;mtr);<br>    <span class="hljs-built_in">mtr_x_lock</span>(<span class="hljs-built_in">fil_space_get_latch</span>(space_id), &amp;mtr, UT_LOCATION_HERE);<br>    <span class="hljs-comment">/* 初始化Filespace Header */</span><br>    <span class="hljs-keyword">if</span> (!<span class="hljs-built_in">fsp_header_init</span>(space_id, UNDO_INITIAL_SIZE_IN_PAGES, &amp;mtr))<br>    ...<br>    <span class="hljs-comment">/* 在文件第3页初始化Rollback Segment Array Header，以及memset</span><br><span class="hljs-comment">       设置数组内容为0xffffffff */</span><br>    <span class="hljs-built_in">trx_rseg_array_create</span>(space_id, &amp;mtr);<br>    <span class="hljs-built_in">mtr_commit</span>(&amp;mtr);<br>    <span class="hljs-comment">/* 这里并不初始化Rollback Segment们，稍后在</span><br><span class="hljs-comment">       trx_rseg_add_rollback_segments()中进行 */</span><br>  &#125;<br>  ...<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>在trx_rseg_add_rollback_segments函数中，会根据入参传入的数量向Tablespace中初始化多个Rollback Segment，这一部分逻辑如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-comment">/* 参数space_id标识Tablespace；target_rsegs标识要创建的数目；</span><br><span class="hljs-comment">   rsegs一般是undo_space-&gt;rsegs，也就是该Tablespace下维护的</span><br><span class="hljs-comment">   Rollback Segment数组，用于将新创建的Rollback Segment加进</span><br><span class="hljs-comment">   去；n_total_created是出参，记录刨去已有后真正创建的数目 */</span><br><span class="hljs-function"><span class="hljs-type">bool</span> <span class="hljs-title">trx_rseg_add_rollback_segments</span><span class="hljs-params">(<span class="hljs-type">space_id_t</span> space_id, ulong target_rsegs, Rsegs *rsegs, ulint *<span class="hljs-type">const</span> n_total_created)</span> </span>&#123;<br>  <span class="hljs-type">bool</span> success = <span class="hljs-literal">true</span>;<br>  <span class="hljs-type">mtr_t</span> mtr;<br>  <span class="hljs-type">page_no_t</span> page_no;<br>  <span class="hljs-type">trx_rseg_t</span> *rseg;<br>  ulint n_existing = <span class="hljs-number">0</span>;<br>  ulint n_created = <span class="hljs-number">0</span>;<br>  ulint n_tracked = <span class="hljs-number">0</span>;<br>  <span class="hljs-comment">/* Tablespace分两种，临时和Undo，Undo的需要用Redo Log记录变化 */</span><br>  <span class="hljs-keyword">enum</span> <span class="hljs-title class_">space_type_t</span> &#123; TEMP, UNDO &#125; type;<br>  type = (<span class="hljs-built_in">fsp_is_undo_tablespace</span>(space_id) ? UNDO : TEMP);<br><br>  rsegs-&gt;<span class="hljs-built_in">x_lock</span>();<br>  <span class="hljs-comment">/* 最多创建128个 */</span><br>  <span class="hljs-keyword">for</span> (ulint num = <span class="hljs-number">0</span>; num &lt; FSP_MAX_ROLLBACK_SEGMENTS; num++) &#123;<br>    <span class="hljs-keyword">if</span> (rsegs-&gt;<span class="hljs-built_in">size</span>() &gt;= target_rsegs) <span class="hljs-keyword">break</span>;<br>    ulint rseg_id = num;<br>    <span class="hljs-comment">/* 已经创建过了，跳过 */</span><br>    rseg = rsegs-&gt;<span class="hljs-built_in">find</span>(rseg_id);<br>    <span class="hljs-keyword">if</span> (rseg != <span class="hljs-literal">nullptr</span>) &#123;<br>      n_existing++;<br>      <span class="hljs-keyword">continue</span>;<br>    &#125;<br><br>    <span class="hljs-keyword">if</span> (type == UNDO) &#123;<br>      <span class="hljs-comment">/* Undo Tablespace从初始化过的目录页读Page号，理应是刚才</span><br><span class="hljs-comment">         memset的0xffffffff */</span><br>      page_no = <span class="hljs-built_in">trx_rseg_get_page_no</span>(space_id, rseg_id);<br>    &#125; <span class="hljs-keyword">else</span> &#123;<br>      <span class="hljs-comment">/* 临时Tablespace无需目录页，rsegs里没有就是没有，等会直接创建就行 */</span><br>      page_no = FIL_NULL;<br>    &#125;<br><br>    <span class="hljs-keyword">if</span> (page_no == FIL_NULL) &#123; <span class="hljs-comment">/* 从目录页中也找不到rseg_id对应的Page号 */</span><br>      <span class="hljs-comment">/* 临时Tablespace需要创建 ||</span><br><span class="hljs-comment">         Undo Tablespace只有在Innodb处于读写模式并且不禁止用户修改时创建(大多数都是这个情况) */</span><br>      <span class="hljs-keyword">if</span> (type == TEMP || (!srv_read_only_mode &amp;&amp; srv_force_recovery == <span class="hljs-number">0</span>)) &#123;<br>        <span class="hljs-comment">/* 进行Rollback Segment创建，包括初始化Rollback Segment Header，</span><br><span class="hljs-comment">           将1024个slot用memset设为0xffffffff，随后将本Header所在的页号</span><br><span class="hljs-comment">           存到所属Tablespace的目录页对应位置 */</span><br>        page_no = <span class="hljs-built_in">trx_rseg_create</span>(space_id, rseg_id);<br>        ... <span class="hljs-comment">//失败判断</span><br>        n_created++;<br>      &#125; <span class="hljs-keyword">else</span> &#123;<br>        <span class="hljs-keyword">break</span>;<br>      &#125;<br>    &#125; <span class="hljs-keyword">else</span> &#123; <span class="hljs-comment">/* 从目录页找到了 */</span><br>      n_existing++;<br>    &#125;<br><br>    <span class="hljs-comment">/* 文件层面初始化完成后，需要创建内存对象存到rsegs数组中进行管理 */</span><br>    mtr.<span class="hljs-built_in">start</span>();<br>    <span class="hljs-type">fil_space_t</span> *space = <span class="hljs-built_in">fil_space_get</span>(space_id);<br>    <span class="hljs-built_in">mtr_x_lock</span>(&amp;space-&gt;latch, &amp;mtr, UT_LOCATION_HERE);<br>    <span class="hljs-keyword">if</span> (type == TEMP) &#123; <span class="hljs-comment">/* 临时Tablespace无需Redo Log记录 */</span><br>      <span class="hljs-built_in">mtr_set_log_mode</span>(&amp;mtr, MTR_LOG_NO_REDO);<br>    &#125;<br>    <span class="hljs-comment">/* 创建内存中的Rollback Segment对象，基本就是Rollback Segment Header</span><br><span class="hljs-comment">       中的信息；以及维护了四个list，分别记录使用中的Insert、Update类型的</span><br><span class="hljs-comment">       Undo Log，以及等待被复用空间的Undo Log */</span><br>    rseg = <span class="hljs-built_in">trx_rseg_mem_create</span>(rseg_id, space_id, page_no, univ_page_size, <span class="hljs-number">0</span>, purge_sys-&gt;purge_queue, &amp;mtr);<br>    mtr.<span class="hljs-built_in">commit</span>();<br>    <span class="hljs-comment">/* 创建成功后加入到Tablespace的rsegs数组中进行管理 */</span><br>    <span class="hljs-keyword">if</span> (rseg != <span class="hljs-literal">nullptr</span>) &#123;<br>      rsegs-&gt;<span class="hljs-built_in">push_back</span>(rseg);<br>      n_tracked++;<br>    &#125;<br>  &#125;<br>  rsegs-&gt;<span class="hljs-built_in">x_unlock</span>();<br>  ... <span class="hljs-comment">/* 判断各种错误 */</span><br>  <span class="hljs-comment">/* 出参记录结果 */</span><br>  <span class="hljs-keyword">if</span> (n_total_created != <span class="hljs-literal">nullptr</span>)<br>    *n_total_created += n_created;<br>  <span class="hljs-comment">/* Undo Tablespace记录一下已经创建的Rollback Segment数目 */</span><br>  <span class="hljs-keyword">if</span> (type == UNDO) &#123;<br>    <span class="hljs-built_in">fil_space_set_undo_size</span>(space_id, <span class="hljs-literal">true</span>);<br>  &#125;<br>  <span class="hljs-keyword">return</span> (success);<br>&#125;<br></code></pre></td></tr></table></figure>
+<h1 id="创建Undo-Log"><a href="#创建Undo-Log" class="headerlink" title="创建Undo Log"></a><strong>创建Undo Log</strong></h1><h2 id="分配Rollback-Segment"><a href="#分配Rollback-Segment" class="headerlink" title="分配Rollback Segment"></a><strong>分配Rollback Segment</strong></h2><p>Undo Log的创建是随着事务开始而进行的，入口在trx_start_low函数，整个调用链中的相关部分如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-function"><span class="hljs-type">static</span> <span class="hljs-type">void</span> <span class="hljs-title">trx_start_low</span><span class="hljs-params">(<span class="hljs-type">trx_t</span> *trx, <span class="hljs-type">bool</span> read_write)</span></span><br><span class="hljs-function"></span>&#123;<br>  ...<br>  <span class="hljs-keyword">if</span> (!trx-&gt;read_only &amp;&amp; (trx-&gt;mysql_thd == <span class="hljs-literal">nullptr</span> || read_write || trx-&gt;ddl_operation)) &#123;<br>    <span class="hljs-comment">/* 为trx分配一个Rollback Segment */</span><br>    <span class="hljs-built_in">trx_assign_rseg_durable</span>(trx);<br>    ...<br>  &#125;<br>  ...<br>&#125;<br><br><span class="hljs-function"><span class="hljs-type">void</span> <span class="hljs-title">trx_assign_rseg_durable</span><span class="hljs-params">(<span class="hljs-type">trx_t</span> *trx)</span> </span>&#123;<br>  <span class="hljs-comment">/* 令trx-&gt;rsegs.m_redo.rseg指向分配的Rollback Segment */</span><br>  trx-&gt;rsegs.m_redo.rseg = srv_read_only_mode ? <span class="hljs-literal">nullptr</span> : <span class="hljs-built_in">get_next_redo_rseg</span>();<br>&#125;<br><br><span class="hljs-function"><span class="hljs-type">static</span> <span class="hljs-type">trx_rseg_t</span> *<span class="hljs-title">get_next_redo_rseg</span><span class="hljs-params">()</span> </span>&#123;<br>  <span class="hljs-keyword">if</span> (!trx_sys-&gt;rsegs.<span class="hljs-built_in">is_empty</span>()) &#123; <span class="hljs-comment">/* 系统Tablespace没有在等待被drop的状态就直接用系统的 */</span><br>    <span class="hljs-comment">/* 因为只涉及一个Tablespace，就是该Tablespace的Rsegs数组取下一个slot中的rseg */</span><br>    <span class="hljs-keyword">return</span> (<span class="hljs-built_in">get_next_redo_rseg_from_trx_sys</span>());<br>  &#125; <span class="hljs-keyword">else</span> &#123; <span class="hljs-comment">/* 从非系统Undo Tablespace们中挑一个出来 */</span><br>    <span class="hljs-built_in">return</span> (<span class="hljs-built_in">get_next_redo_rseg_from_undo_spaces</span>()); <span class="hljs-comment">/* Round-Robin分配 */</span><br>  &#125;<br>&#125;<br><br><span class="hljs-function"><span class="hljs-type">static</span> <span class="hljs-type">trx_rseg_t</span> *<span class="hljs-title">get_next_redo_rseg_from_undo_spaces</span><span class="hljs-params">()</span> </span>&#123;<br>  undo::Tablespace *undo_space;<br>  undo::spaces-&gt;<span class="hljs-built_in">s_lock</span>();<br>  <span class="hljs-comment">/* Tablespace的数目 */</span><br>  ulint target_undo_tablespaces = undo::spaces-&gt;<span class="hljs-built_in">size</span>();<br>  <span class="hljs-comment">/* 每个Tablespace中Rollback Segment的数量 */</span><br>  ulint target_rollback_segments = srv_rollback_segments;<br><br>  <span class="hljs-comment">/* 静态变量rseg_counter表示要分配的回滚段编号，会根据该编号</span><br><span class="hljs-comment">     来计算space id和segment id */</span><br>  <span class="hljs-type">static</span> std::atomic&lt;ulint&gt; rseg_counter&#123;<span class="hljs-number">0</span>&#125;;<br>  <span class="hljs-type">trx_rseg_t</span> *rseg = <span class="hljs-literal">nullptr</span>;<br>  ulint current = rseg_counter;<br><br>  <span class="hljs-comment">/* 循环直到找到符合的rseg */</span><br>  <span class="hljs-keyword">while</span> (rseg == <span class="hljs-literal">nullptr</span>) &#123;<br>    rseg_counter.<span class="hljs-built_in">fetch_add</span>(<span class="hljs-number">1</span>);<br>    <span class="hljs-comment">/* 取模得到space_id，取商得到rseg_id，相当于循环尝试每个Tablespace中</span><br><span class="hljs-comment">       对应位置的rseg，所有Tablespace中的进度条齐头并进 */</span><br>    ulint window = current % (target_rollback_segments * target_undo_tablespaces);<br>    ulint spaces_slot = window % target_undo_tablespaces;<br>    ulint rseg_slot = window / target_undo_tablespaces;<br>    current++;<br><br>    <span class="hljs-comment">/* 获得Tablespace */</span><br>    undo_space = undo::spaces-&gt;<span class="hljs-built_in">at</span>(spaces_slot);<br>    <span class="hljs-comment">/* 要求Tablespace必须是active的 */</span><br>    <span class="hljs-keyword">if</span> (!undo_space-&gt;<span class="hljs-built_in">is_active_no_latch</span>()) &#123;<br>      <span class="hljs-keyword">continue</span>;<br>    &#125;<br><br>    <span class="hljs-comment">/* 获得Tablespace对应位置的rseg，给它的trx_ref_count加1 */</span><br>    rseg = undo_space-&gt;<span class="hljs-built_in">get_active</span>(rseg_slot);<br>    <span class="hljs-keyword">if</span> (rseg == <span class="hljs-literal">nullptr</span>) &#123;<br>      <span class="hljs-keyword">continue</span>;<br>    &#125;<br>  &#125;<br>  undo::spaces-&gt;<span class="hljs-built_in">s_unlock</span>();<br>  <span class="hljs-keyword">return</span> (rseg);<br>&#125;<br></code></pre></td></tr></table></figure>
+<h2 id="初始化Undo-Log"><a href="#初始化Undo-Log" class="headerlink" title="初始化Undo Log"></a><strong>初始化Undo Log</strong></h2><p>当产生数据变更时，需要使用Undo Log记录下变更前的数据来维护多版本信息。insert 和 delete&#x2F;update 分开记录undo，因此需要从回滚段单独分配Undo slot，在首次记录时，会创建Undo Log。入口函数是trx_undo_report_row_operation，与初始化Undo Log相关的代码如下：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-function"><span class="hljs-type">dberr_t</span> <span class="hljs-title">trx_undo_report_row_operation</span><span class="hljs-params">(...)</span> </span>&#123;<br>  ...<br>  <span class="hljs-keyword">switch</span> (op_type) &#123;<br>    <span class="hljs-keyword">case</span> TRX_UNDO_INSERT_OP: <span class="hljs-comment">/* insert类型操作 */</span><br>      undo = undo_ptr-&gt;insert_undo;<br>      <span class="hljs-keyword">if</span> (undo == <span class="hljs-literal">nullptr</span>) &#123;<br>        <span class="hljs-comment">/* 为事务创建insert类型Undo Log */</span><br>        err = <span class="hljs-built_in">trx_undo_assign_undo</span>(trx, undo_ptr, TRX_UNDO_INSERT);<br>        undo = undo_ptr-&gt;insert_undo;<br>        ... <span class="hljs-comment">/* 错误处理 */</span><br>      &#125;<br>      <span class="hljs-keyword">break</span>;<br>    <span class="hljs-keyword">default</span>: <span class="hljs-comment">/* update类型操作 */</span><br>      undo = undo_ptr-&gt;update_undo;<br>      <span class="hljs-keyword">if</span> (undo == <span class="hljs-literal">nullptr</span>) &#123;<br>        <span class="hljs-comment">/* 为事务创建Update类型Undo Log */</span><br>        err = <span class="hljs-built_in">trx_undo_assign_undo</span>(trx, undo_ptr, TRX_UNDO_UPDATE);<br>        undo = undo_ptr-&gt;update_undo;<br>        ... <span class="hljs-comment">/* 错误处理 */</span><br>      &#125;<br>      <span class="hljs-keyword">break</span>;<br>  &#125;<br>  ...<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>可以看出，无论是Insert类型还是Update类型操作，在首次发现Undo Log为空时，都会调用trx_undo_assign_undo函数进行Undo Log创建，接下来看看这个函数：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-function"><span class="hljs-type">dberr_t</span> <span class="hljs-title">trx_undo_assign_undo</span><span class="hljs-params">(<span class="hljs-type">trx_t</span> *trx, <span class="hljs-type">trx_undo_ptr_t</span> *undo_ptr, ulint type)</span></span><br><span class="hljs-function"></span>&#123;<br>  <span class="hljs-type">trx_rseg_t</span> *rseg;<br>  <span class="hljs-type">trx_undo_t</span> *undo;<br>  <span class="hljs-type">mtr_t</span> mtr;<br>  <span class="hljs-type">dberr_t</span> err = DB_SUCCESS;<br>  <span class="hljs-comment">/* 获得分配给事务的Rollback Segment */</span><br>  rseg = undo_ptr-&gt;rseg;<br>  <span class="hljs-comment">/* trx-&gt;rsegs.m_noredo中的Undo Log本身不需要记录到Redo Log */</span><br>  <span class="hljs-type">bool</span> no_redo = (&amp;trx-&gt;rsegs.m_noredo == undo_ptr);<br>  <span class="hljs-comment">/* 是否是事务的第一条Undo Record */</span><br>  <span class="hljs-type">bool</span> is_first = undo_ptr-&gt;<span class="hljs-built_in">is_empty</span>();<br>  ... <span class="hljs-comment">/* gtid相关 */</span><br><br>  mtr.<span class="hljs-built_in">start</span>();<br>  <span class="hljs-keyword">if</span> (no_redo) &#123;<br>    mtr.<span class="hljs-built_in">set_log_mode</span>(MTR_LOG_NO_REDO);<br>  &#125;<br><br>  rseg-&gt;<span class="hljs-built_in">latch</span>();<br>  <span class="hljs-comment">/* 首先从rseg的cache list中尝试为事务复用Undo Segment */</span><br>  undo = <span class="hljs-built_in">trx_undo_reuse_cached</span>(rseg, type, trx-&gt;id, trx-&gt;xid, gtid_storage, &amp;mtr);<br>  <span class="hljs-comment">/* 复用空间不成功，只能创建一个新的Undo Segment，并在其中创建Undo Log */</span><br>  <span class="hljs-keyword">if</span> (undo == <span class="hljs-literal">nullptr</span>) &#123;<br>    err = <span class="hljs-built_in">trx_undo_create</span>(rseg, type, trx-&gt;id, trx-&gt;xid, gtid_storage, &amp;undo, &amp;mtr);<br>    ... <span class="hljs-comment">/* 错误处理 */</span><br>  &#125;<br><br>  <span class="hljs-comment">/* 将创建的新的Undo Log根据类型插入到rseg管理的list中，</span><br><span class="hljs-comment">     同时在事务信息trx-&gt;rsegs-&gt;m_redo(or m_noredo)-&gt;insert_undo</span><br><span class="hljs-comment">     或trx-&gt;rsegs-&gt;m_redo(or m_noredo)-&gt;update_undo中记录 */</span><br>  <span class="hljs-keyword">if</span> (type == TRX_UNDO_INSERT) &#123;<br>    <span class="hljs-built_in">UT_LIST_ADD_FIRST</span>(rseg-&gt;insert_undo_list, undo);<br>    undo_ptr-&gt;insert_undo = undo;<br>  &#125; <span class="hljs-keyword">else</span> &#123;<br>    <span class="hljs-built_in">UT_LIST_ADD_FIRST</span>(rseg-&gt;update_undo_list, undo);<br>    undo_ptr-&gt;update_undo = undo;<br>  &#125;<br>  <br>  ...<br>  rseg-&gt;<span class="hljs-built_in">unlatch</span>();<br>  mtr.<span class="hljs-built_in">commit</span>();<br>  <span class="hljs-keyword">return</span> (err);<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>首先看一下函数trx_undo_reuse_cached的主体逻辑：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-function"><span class="hljs-type">static</span> <span class="hljs-type">trx_undo_t</span> *<span class="hljs-title">trx_undo_reuse_cached</span><span class="hljs-params">(<span class="hljs-type">trx_rseg_t</span> *rseg, ulint type,</span></span><br><span class="hljs-params"><span class="hljs-function">                                         <span class="hljs-type">trx_id_t</span> trx_id, <span class="hljs-type">const</span> XID *xid,</span></span><br><span class="hljs-params"><span class="hljs-function">                                         <span class="hljs-type">trx_undo_t</span>::Gtid_storage gtid_storage,</span></span><br><span class="hljs-params"><span class="hljs-function">                                         <span class="hljs-type">mtr_t</span> *mtr)</span> </span>&#123;<br>  <span class="hljs-type">trx_undo_t</span> *undo;<br>  <span class="hljs-comment">/* 根据类型分别从insert和update的cache list获得首个等待复用的Undo Segment */</span><br>  <span class="hljs-keyword">if</span> (type == TRX_UNDO_INSERT) &#123;<br>    undo = <span class="hljs-built_in">UT_LIST_GET_FIRST</span>(rseg-&gt;insert_undo_cached);<br>    ...<br>    <span class="hljs-built_in">UT_LIST_REMOVE</span>(rseg-&gt;insert_undo_cached, undo);<br>    ...<br>  &#125; <span class="hljs-keyword">else</span> &#123;<br>    undo = <span class="hljs-built_in">UT_LIST_GET_FIRST</span>(rseg-&gt;update_undo_cached);<br>    ...<br>    <span class="hljs-built_in">UT_LIST_REMOVE</span>(rseg-&gt;update_undo_cached, undo);<br>  &#125;<br><br>  <span class="hljs-comment">/* 获得Undo Segment首页 */</span><br>  <span class="hljs-keyword">auto</span> undo_page = <span class="hljs-built_in">trx_undo_page_get</span>(<span class="hljs-built_in">page_id_t</span>(undo-&gt;space, undo-&gt;hdr_page_no),<br>                                     undo-&gt;page_size, mtr);<br>  ulint offset;<br><br>  <span class="hljs-keyword">if</span> (type == TRX_UNDO_INSERT) &#123;<br>    <span class="hljs-comment">/* insert类型直接覆盖已有的Undo Log，因为这些历史Undo Log肯定没用了 */</span><br>    offset = <span class="hljs-built_in">trx_undo_insert_header_reuse</span>(undo_page, trx_id, mtr);<br>    gtid_storage = <span class="hljs-type">trx_undo_t</span>::Gtid_storage::NONE;<br>  &#125; <span class="hljs-keyword">else</span> &#123;<br>    <span class="hljs-comment">/* update类型会接着之前的Undo Log新建一个Undo Log，并更新一下Undo Segment</span><br><span class="hljs-comment">       的元信息，保留之前的Undo Log是因为可能还被用于MVCC */</span><br>    offset = <span class="hljs-built_in">trx_undo_header_create</span>(undo_page, trx_id, mtr);<br>  &#125;<br>  <span class="hljs-comment">/* 扩充Undo Log Header空间，可以存xid信息 */</span><br>  <span class="hljs-built_in">trx_undo_header_add_space_for_xid</span>(undo_page, undo_page + offset, mtr, gtid_storage);<br>  <span class="hljs-comment">/* 将内存中的对象初始化，变更为新事务的信息 */</span><br>  <span class="hljs-built_in">trx_undo_mem_init_for_reuse</span>(undo, trx_id, xid, offset);<br><br>  undo-&gt;m_gtid_storage = gtid_storage;<br><br>  <span class="hljs-keyword">return</span> (undo);<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>再来看一下函数trx_undo_create的主体逻辑：</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-function"><span class="hljs-type">static</span> <span class="hljs-type">dberr_t</span> <span class="hljs-title">trx_undo_create</span><span class="hljs-params">(</span></span><br><span class="hljs-params"><span class="hljs-function">    <span class="hljs-type">trx_rseg_t</span> *rseg, ulint type, <span class="hljs-type">trx_id_t</span> trx_id, <span class="hljs-type">const</span> XID *xid,</span></span><br><span class="hljs-params"><span class="hljs-function">    <span class="hljs-type">trx_undo_t</span>::Gtid_storage gtid_storage, <span class="hljs-type">trx_undo_t</span> **undo, <span class="hljs-type">mtr_t</span> *mtr)</span> </span>&#123;<br>  <span class="hljs-type">trx_rsegf_t</span> *rseg_header;<br>  <span class="hljs-type">page_no_t</span> page_no;<br>  ulint offset;<br>  ulint id;<br>  <span class="hljs-type">page_t</span> *undo_page;<br>  <br>  <span class="hljs-comment">/* Rollback Segment已经满了 */</span><br>  <span class="hljs-keyword">if</span> (rseg-&gt;<span class="hljs-built_in">get_curr_size</span>() == rseg-&gt;max_size) &#123;<br>    <span class="hljs-keyword">return</span> DB_OUT_OF_FILE_SPACE;<br>  &#125;<br>  <span class="hljs-comment">/* rseg的size加1，并且拿到Rollback Segment Header */</span><br>  rseg-&gt;<span class="hljs-built_in">incr_curr_size</span>();<br>  rseg_header = <span class="hljs-built_in">trx_rsegf_get</span>(rseg-&gt;space_id, rseg-&gt;page_no, rseg-&gt;page_size, mtr);<br>  <br>  <span class="hljs-comment">/* 创建新的Undo Segment，包括找rseg中空闲的slot，分配物理页，在其上初始化</span><br><span class="hljs-comment">     Undo Page Header和Undo Segment Header */</span><br>  <span class="hljs-keyword">auto</span> err = <span class="hljs-built_in">trx_undo_seg_create</span>(rseg, rseg_header, type, &amp;id, &amp;undo_page, mtr);<br>  ... <span class="hljs-comment">/* 错误处理 */</span><br>    <br>  <span class="hljs-comment">/* 获得刚刚创建的Undo Segment首页，在其上创建Undo Log header，这一部分逻辑和</span><br><span class="hljs-comment">     上面trx_undo_reuse_cached函数类似 */</span><br>  page_no = <span class="hljs-built_in">page_get_page_no</span>(undo_page);<br>  offset = <span class="hljs-built_in">trx_undo_header_create</span>(undo_page, trx_id, mtr);<br>  <span class="hljs-keyword">if</span> (type != TRX_UNDO_UPDATE) &#123;<br>    gtid_storage = <span class="hljs-type">trx_undo_t</span>::Gtid_storage::NONE;<br>  &#125;<br>  <span class="hljs-built_in">trx_undo_header_add_space_for_xid</span>(undo_page, undo_page + offset, mtr,<br>                                    gtid_storage);<br><br>  <span class="hljs-comment">/* 创建代表该Undo Log的内存对象 */</span><br>  *undo = <span class="hljs-built_in">trx_undo_mem_create</span>(rseg, id, type, trx_id, xid, page_no, offset);<br>  <span class="hljs-keyword">if</span> (*undo == <span class="hljs-literal">nullptr</span>) &#123;<br>    <span class="hljs-keyword">return</span> DB_OUT_OF_MEMORY;<br>  &#125;<br><br>  (*undo)-&gt;m_gtid_storage = gtid_storage;<br>  <span class="hljs-keyword">return</span> DB_SUCCESS;<br>&#125;<br></code></pre></td></tr></table></figure>
+<p>至此便完成了事务Undo Log的创建，后续通过trx_undo_report_row_operation函数向Undo Log中写入Undo Record。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/MySQL/" class="category-chain-item">MySQL</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/MySQL/InnoDB/" class="category-chain-item">InnoDB</a>
+  
+  
+    <span>></span>
+    
+  <a href="/categories/MySQL/InnoDB/%E4%BA%8B%E5%8A%A1-Transaction/" class="category-chain-item">事务 Transaction</a>
+  
+  
+
+  
+
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/MySQL/" class="print-no-link">#MySQL</a>
+      
+        <a href="/tags/Undo-Log/" class="print-no-link">#Undo Log</a>
+      
+        <a href="/tags/%E8%AF%BB%E6%BA%90%E7%A0%81/" class="print-no-link">#读源码</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>MySQL Undo Log基本结构与初始化</div>
+      <div>http://captain32.github.io/2023/10/22/MySQL-Undo-Log基本结构与初始化/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>张熙哲</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2023年10月22日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2023/10/22/MySQL%E6%95%85%E9%9A%9C%E6%81%A2%E5%A4%8D%E2%80%94%E2%80%94Server%E7%AF%87/" title="MySQL故障恢复——Server篇">
+                        <span class="hidden-mobile">MySQL故障恢复——Server篇</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+  
+  
+    <article id="comments" lazyload>
+      
+  <script type="text/javascript">
+    Fluid.utils.loadComments('#comments', function() {
+      var light = 'github-light';
+      var dark = 'github-dark';
+      var schema = document.documentElement.getAttribute('data-user-color-scheme');
+      if (schema === 'dark') {
+        schema = dark;
+      } else {
+        schema = light;
+      }
+      window.UtterancesThemeLight = light;
+      window.UtterancesThemeDark = dark;
+      var s = document.createElement('script');
+      s.setAttribute('src', 'https://utteranc.es/client.js');
+      s.setAttribute('repo', 'Captain32/Utterances-comment');
+      s.setAttribute('issue-term', 'pathname');
+      
+      s.setAttribute('label', 'utterances');
+      
+      s.setAttribute('theme', schema);
+      s.setAttribute('crossorigin', 'anonymous');
+      document.getElementById('comments').appendChild(s);
+    })
+  </script>
+  <noscript>Please enable JavaScript to view the comments</noscript>
+
+
+    </article>
+  
+
+
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="leancloud-site-pv-container" style="display: none">
+        总访问量 
+        <span id="leancloud-site-pv"></span>
+         次
+      </span>
+    
+    
+      <span id="leancloud-site-uv-container" style="display: none">
+        总访客数 
+        <span id="leancloud-site-uv"></span>
+         人
+      </span>
+    
+    
+
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script defer src="/js/leancloud.js" ></script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
